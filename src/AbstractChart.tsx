@@ -17,7 +17,7 @@ export interface AbstractChartProps {
   customYAxis?: boolean;
   toNumber?: number;
   yAxisLineProps?: object;
-  yAxisIntervals?: object[];
+  yAxisIntervals?: { color: string; to: number; from: number }[];
 }
 
 export interface AbstractChartConfig extends ChartConfig {
@@ -137,9 +137,7 @@ class AbstractChart<
     };
   }
 
-  renderCustomYAxis = (
-    config: Omit<AbstractChartConfig, "data"> & { data: number[] }
-  ) => {
+  renderCustomYAxis = (config: any) => {
     const { height, paddingTop, paddingRight } = config;
 
     const { yAxisIntervals, toNumber } = this.props;
