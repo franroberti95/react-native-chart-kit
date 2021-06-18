@@ -16,7 +16,8 @@ export interface AbstractChartProps {
   hidePointsAtIndex?: number[];
   customYAxis?: boolean;
   toNumber?: number;
-  yAxisLineProps?: (text) => object;
+  yAxisLineProps?: object;
+  yAxisIntervals?: object[];
 }
 
 export interface AbstractChartConfig extends ChartConfig {
@@ -136,6 +137,31 @@ class AbstractChart<
     };
   }
 
+  renderCustomYAxis = (
+    config: Omit<AbstractChartConfig, "data"> & { data: number[] }
+  ) => {
+    const { height, paddingTop, paddingRight } = config;
+
+    const { yAxisIntervals, toNumber } = this.props;
+    return yAxisIntervals.map((interval, i) => {
+      const horizontalAlignment = paddingRight - 6;
+      const topValue = toNumber;
+      const start = ((height - paddingTop) * interval.from) / topValue;
+      const end = ((height - paddingTop) * interval.to) / topValue;
+      return (
+        <Line
+          key={Math.random()}
+          x1={horizontalAlignment}
+          y1={start}
+          x2={horizontalAlignment}
+          y2={end}
+          stroke={interval.color}
+          {...(this.props.yAxisLineProps || {})}
+        />
+      );
+    });
+  };
+
   renderHorizontalLines = config => {
     const {
       count,
@@ -203,71 +229,46 @@ class AbstractChart<
       yAxisSuffix = "",
       yLabelsOffset = 12
     } = this.props;
-    const yAxisLines = [];
-    return new Array(count === 1 ? 1 : count + 1)
-      .fill(1)
-      .map((_, i) => {
-        let yLabel = String(i * count);
+    return new Array(count === 1 ? 1 : count + 1).fill(1).map((_, i) => {
+      let yLabel = String(i * count);
 
-        if (count === 1) {
-          yLabel = `${yAxisLabel}${formatYLabel(
-            data[0].toFixed(decimalPlaces)
-          )}${yAxisSuffix}`;
-        } else {
-          const label = this.props.fromZero
-            ? (this.calcScaler(data) / count) * i + Math.min(...data, 0)
-            : (this.calcScaler(data) / count) * i + Math.min(...data);
-          yLabel = `${yAxisLabel}${formatYLabel(
-            label.toFixed(decimalPlaces)
-          )}${yAxisSuffix}`;
-        }
+      if (count === 1) {
+        yLabel = `${yAxisLabel}${formatYLabel(
+          data[0].toFixed(decimalPlaces)
+        )}${yAxisSuffix}`;
+      } else {
+        const label = this.props.fromZero
+          ? (this.calcScaler(data) / count) * i + Math.min(...data, 0)
+          : (this.calcScaler(data) / count) * i + Math.min(...data);
+        yLabel = `${yAxisLabel}${formatYLabel(
+          label.toFixed(decimalPlaces)
+        )}${yAxisSuffix}`;
+      }
 
-        const basePosition = height * verticalLabelsHeightPercentage;
-        const x = paddingRight - yLabelsOffset;
-        const y =
-          count === 1 && this.props.fromZero
-            ? paddingTop + 4
-            : height * verticalLabelsHeightPercentage -
-              (basePosition / count) * i +
-              paddingTop;
+      const basePosition = height * verticalLabelsHeightPercentage;
+      const x = paddingRight - yLabelsOffset;
+      const y =
+        count === 1 && this.props.fromZero
+          ? paddingTop + 4
+          : height * verticalLabelsHeightPercentage -
+            (basePosition / count) * i +
+            paddingTop;
 
-        const isFirstElem = i === 0;
-        const verticalY1 =
-          height * verticalLabelsHeightPercentage -
-          (basePosition / count) * (i - 1) +
-          paddingTop;
-        const verticalY2 = y;
-        const horizontalAlignment = paddingRight - 6;
-        if (this.props.customYAxis && !isFirstElem)
-          yAxisLines.push(
-            <Line
-              key={Math.random()}
-              x1={horizontalAlignment}
-              y1={verticalY1}
-              x2={horizontalAlignment}
-              y2={verticalY2}
-              {...((this.props.yAxisLineProps &&
-                this.props.yAxisLineProps(yLabel)) ||
-                {})}
-            />
-          );
-
-        return (
-          <Text
-            rotation={horizontalLabelRotation}
-            origin={`${x}, ${y}`}
-            key={Math.random()}
-            x={x}
-            textAnchor="end"
-            y={y}
-            {...this.getPropsForLabels()}
-            {...this.getPropsForHorizontalLabels()}
-          >
-            {yLabel}
-          </Text>
-        );
-      })
-      .concat(yAxisLines.reverse());
+      return (
+        <Text
+          rotation={horizontalLabelRotation}
+          origin={`${x}, ${y}`}
+          key={Math.random()}
+          x={x}
+          textAnchor="end"
+          y={y}
+          {...this.getPropsForLabels()}
+          {...this.getPropsForHorizontalLabels()}
+        >
+          {yLabel}
+        </Text>
+      );
+    });
   };
 
   renderVerticalLabels = ({

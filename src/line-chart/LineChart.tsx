@@ -88,6 +88,10 @@ export interface LineChartProps extends AbstractChartProps {
    */
   withVerticalLabels?: boolean;
   /**
+   * Show a custom Y axis
+   */
+  withCustomYAxis?: boolean;
+  /**
    * Show horizontal labels - default: True.
    */
   withHorizontalLabels?: boolean;
@@ -799,6 +803,7 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
       withOuterLines = true,
       withHorizontalLines = true,
       withVerticalLines = true,
+      withCustomYAxis = false,
       withHorizontalLabels = true,
       withVerticalLabels = true,
       style = {},
@@ -818,7 +823,7 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
     const {
       borderRadius = 0,
       paddingTop = 16,
-      paddingRight = 64,
+      paddingRight = 50,
       margin = 0,
       marginRight = 0,
       paddingBottom = 0
@@ -889,6 +894,14 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
                   paddingRight: paddingRight as number,
                   formatYLabel,
                   decimalPlaces: chartConfig.decimalPlaces
+                })}
+            </G>
+            <G>
+              {withCustomYAxis &&
+                this.renderCustomYAxis({
+                  ...config,
+                  paddingTop: paddingTop as number,
+                  paddingRight: paddingRight as number
                 })}
             </G>
             <G>
