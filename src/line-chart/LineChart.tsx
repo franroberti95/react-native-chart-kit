@@ -111,6 +111,11 @@ export interface LineChartProps extends AbstractChartProps {
    * Prepend text to vertical labels -- default: ''.
    */
   xAxisLabel?: string;
+  /*
+   * customXAxisLegend
+   *
+   * */
+  customXAxisLegend?: string;
   /**
    * Configuration object for the chart, see example:
    *
@@ -901,7 +906,15 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
                 this.renderCustomYAxis({
                   ...config,
                   paddingTop: paddingTop as number,
-                  paddingRight: paddingRight as number
+                  paddingRight: paddingRight as number,
+                  data: data.datasets
+                })}
+            </G>
+            <G>
+              {this.props.customXAxisLegend &&
+                this.renderCustomXAxisLegend({
+                  paddingTop: paddingTop as number,
+                  customXAxisLegend: this.props.customXAxisLegend
                 })}
             </G>
             <G>

@@ -63,7 +63,7 @@ class AbstractChart<
 
   calcBaseHeight = (data: number[], height: number) => {
     const min = Math.min(...data);
-    const max = Math.max(...data);
+    const max = this.props.toNumber ? this.props.toNumber : Math.max(...data);
     if (min >= 0 && max >= 0) {
       return height;
     } else if (min < 0 && max <= 0) {
@@ -74,7 +74,7 @@ class AbstractChart<
   };
 
   calcHeight = (val: number, data: number[], height: number) => {
-    const max = Math.max(...data);
+    const max = this.props.toNumber ? this.props.toNumber : Math.max(...data);
     const min = Math.min(...data);
 
     if (min < 0 && max > 0) {
@@ -137,15 +137,29 @@ class AbstractChart<
     };
   }
 
+  renderCustomXAxisLegend = (config: any) => {
+    const { paddingTop, paddingRight, customXAxisLegend } = config;
+    return customXAxisLegend;
+  };
+
   renderCustomYAxis = (config: any) => {
-    const { height, paddingTop, paddingRight } = config;
+    const { height, paddingTop, paddingRight, data } = config;
 
     const { yAxisIntervals, toNumber } = this.props;
     return yAxisIntervals.map((interval, i) => {
       const horizontalAlignment = paddingRight - 6;
-      const topValue = toNumber;
-      const start = ((height - paddingTop) * interval.from) / topValue;
-      const end = ((height - paddingTop) * interval.to) / topValue;
+
+      const datas = data.reduce(
+        (acc, item) => (item.data ? [...acc, ...item.data] : acc),
+        []
+      );
+      const baseHeight = this.calcBaseHeight(datas, height);
+      const start =
+        ((baseHeight - this.calcHeight(interval.from, datas, height)) / 4) * 3 +
+        paddingTop;
+      const end =
+        ((baseHeight - this.calcHeight(interval.to, datas, height)) / 4) * 3 +
+        paddingTop;
       return (
         <Line
           key={Math.random()}
