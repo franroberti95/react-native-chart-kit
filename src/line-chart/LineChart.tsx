@@ -297,7 +297,8 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
         }
 
         const cx =
-          paddingRight + (i * (width - paddingRight)) / dataset.data.length;
+          paddingRight +
+          (i * (width - paddingRight)) / (dataset.data.length - 1);
 
         const cy =
           ((baseHeight - this.calcHeight(x, datas, height)) / 4) * 3 +
@@ -633,7 +634,8 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
       const points = dataset.data.map((d, i) => {
         if (d === null) return lastPoint;
         const x =
-          (i * (width - paddingRight)) / dataset.data.length + paddingRight;
+          (i * (width - paddingRight)) / (dataset.data.length - 1) +
+          paddingRight;
         const y =
           ((baseHeight - this.calcHeight(d, datas, height)) / 4) * 3 +
           paddingTop;
@@ -679,7 +681,7 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
 
     const x = (i: number) =>
       Math.floor(
-        paddingRight + (i * (width - paddingRight)) / dataset.data.length
+        paddingRight + (i * (width - paddingRight)) / (dataset.data.length - 1)
       );
 
     const baseHeight = this.calcBaseHeight(datas, height);
@@ -762,7 +764,7 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
           data
         }) +
         ` L${paddingRight +
-          ((width - paddingRight) / dataset.data.length) *
+          ((width - paddingRight) / (dataset.data.length - 1)) *
             (dataset.data.length - 1)},${(height / 4) * 3 +
           paddingTop} L${paddingRight},${(height / 4) * 3 + paddingTop} Z`;
 
@@ -854,7 +856,7 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
       <View style={style}>
         <Svg
           height={height + (paddingBottom as number) + legendOffset}
-          width={width - (margin as number) * 2 - (marginRight as number)}
+          width={width - (margin as number) * 2 - (marginRight as number) + 15}
         >
           <Rect
             width="100%"

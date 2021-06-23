@@ -17,6 +17,7 @@ export interface AbstractChartProps {
   customYAxis?: boolean;
   toNumber?: number;
   yAxisLineProps?: object;
+  smallPaddingRight?: boolean;
   yAxisIntervals?: { color: string; to: number; from: number }[];
 }
 
@@ -47,9 +48,7 @@ class AbstractChart<
 > extends Component<AbstractChartProps & IProps, AbstractChartState & IState> {
   calcScaler = (data: number[]) => {
     if (this.props.fromZero) {
-      const toNumber: number[] = this.props.toNumber
-        ? [this.props.toNumber]
-        : data;
+      const toNumber: number[] = [...data, this.props.toNumber || 0];
       return Math.max(...toNumber, 0) - Math.min(...data, 0) || 1;
     } else if (this.props.fromNumber) {
       return (
@@ -63,7 +62,9 @@ class AbstractChart<
 
   calcBaseHeight = (data: number[], height: number) => {
     const min = Math.min(...data);
-    const max = this.props.toNumber ? this.props.toNumber : Math.max(...data);
+    const max = this.props.toNumber
+      ? Math.max(...[...data, this.props.toNumber])
+      : Math.max(...data);
     if (min >= 0 && max >= 0) {
       return height;
     } else if (min < 0 && max <= 0) {
@@ -74,7 +75,9 @@ class AbstractChart<
   };
 
   calcHeight = (val: number, data: number[], height: number) => {
-    const max = this.props.toNumber ? this.props.toNumber : Math.max(...data);
+    const max = this.props.toNumber
+      ? Math.max(...[...data, this.props.toNumber])
+      : Math.max(...data);
     const min = Math.min(...data);
 
     if (min < 0 && max > 0) {
@@ -147,7 +150,7 @@ class AbstractChart<
 
     const { yAxisIntervals, toNumber } = this.props;
     return yAxisIntervals.map((interval, i) => {
-      const horizontalAlignment = paddingRight - 6;
+      const horizontalAlignment = paddingRight - 8;
 
       const datas = data.reduce(
         (acc, item) => (item.data ? [...acc, ...item.data] : acc),
@@ -157,8 +160,12 @@ class AbstractChart<
       const start =
         ((baseHeight - this.calcHeight(interval.from, datas, height)) / 4) * 3 +
         paddingTop;
+      const isLastInterval = i === yAxisIntervals.length - 1;
+      const endValue = isLastInterval
+        ? Math.max(...[...datas, interval.to || 0])
+        : interval.to;
       const end =
-        ((baseHeight - this.calcHeight(interval.to, datas, height)) / 4) * 3 +
+        ((baseHeight - this.calcHeight(endValue, datas, height)) / 4) * 3 +
         paddingTop;
       return (
         <Line
@@ -191,7 +198,7 @@ class AbstractChart<
       return (
         <Line
           key={Math.random()}
-          x1={paddingRight}
+          x1={paddingRight - (this.props.smallPaddingRight ? 8 : 0)}
           y1={y}
           x2={width}
           y2={y}
@@ -258,7 +265,7 @@ class AbstractChart<
       }
 
       const basePosition = height * verticalLabelsHeightPercentage;
-      const x = paddingRight - yLabelsOffset;
+      const x = paddingRight - yLabelsOffset + 3;
       const y =
         count === 1 && this.props.fromZero
           ? paddingTop + 4
@@ -326,7 +333,7 @@ class AbstractChart<
       }
 
       const x =
-        (((width - paddingRight) / labels.length) * i +
+        (((width - paddingRight) / (labels.length - 1)) * i +
           paddingRight +
           horizontalOffset) *
         fac;
