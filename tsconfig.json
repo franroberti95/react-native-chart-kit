@@ -14,7 +14,7 @@
     "module": "esnext",
     "moduleResolution": "node",
     "rootDir": "./src",
-    "outDir": "../thinglogix-infinity-poc/node_modules/react-native-custom-chart-kit/dist",
+    "outDir": "./dist",
     "declaration": true,
     "declarationMap": true,
     "inlineSourceMap": true,

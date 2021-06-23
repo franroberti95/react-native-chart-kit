@@ -298,7 +298,7 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
 
         const cx =
           paddingRight +
-          (i * (width - paddingRight)) / (dataset.data.length - 1);
+          (i * (width - paddingRight - 8)) / (dataset.data.length - 1);
 
         const cy =
           ((baseHeight - this.calcHeight(x, datas, height)) / 4) * 3 +
@@ -580,7 +580,7 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
               .map((d, i) => {
                 const x =
                   paddingRight +
-                  (i * (width - paddingRight)) / dataset.data.length;
+                  (i * (width - paddingRight - 8)) / dataset.data.length;
 
                 const y =
                   ((baseHeight - this.calcHeight(d, datas, height)) / 4) * 3 +
@@ -634,7 +634,7 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
       const points = dataset.data.map((d, i) => {
         if (d === null) return lastPoint;
         const x =
-          (i * (width - paddingRight)) / (dataset.data.length - 1) +
+          (i * (width - paddingRight - 8)) / (dataset.data.length - 1) +
           paddingRight;
         const y =
           ((baseHeight - this.calcHeight(d, datas, height)) / 4) * 3 +
@@ -681,7 +681,8 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
 
     const x = (i: number) =>
       Math.floor(
-        paddingRight + (i * (width - paddingRight)) / (dataset.data.length - 1)
+        paddingRight +
+          (i * (width - paddingRight - 8)) / (dataset.data.length - 1)
       );
 
     const baseHeight = this.calcBaseHeight(datas, height);
