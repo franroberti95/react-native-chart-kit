@@ -157,23 +157,31 @@ class AbstractChart<
         []
       );
       const baseHeight = this.calcBaseHeight(datas, height);
-      const start =
+      let start =
         ((baseHeight - this.calcHeight(interval.from, datas, height)) / 4) * 3 +
         paddingTop;
+
+      const isFistInterval = i === 0;
       const isLastInterval = i === yAxisIntervals.length - 1;
+
       const endValue = isLastInterval
         ? Math.max(...[...datas, interval.to || 0])
         : interval.to;
       const end =
         ((baseHeight - this.calcHeight(endValue, datas, height)) / 4) * 3 +
         paddingTop;
+      const maxGraphHeight =
+        ((baseHeight - this.calcHeight(Math.min(...datas), datas, height)) /
+          4) *
+          3 +
+        paddingTop;
       return (
         <Line
           key={Math.random()}
           x1={horizontalAlignment}
-          y1={start}
+          y1={Math.max(Math.min(start, maxGraphHeight), paddingTop)}
           x2={horizontalAlignment}
-          y2={end}
+          y2={Math.max(Math.min(end, maxGraphHeight), paddingTop)}
           stroke={interval.color}
           {...(this.props.yAxisLineProps || {})}
         />
