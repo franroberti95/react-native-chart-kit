@@ -337,9 +337,9 @@ class AbstractChart<
     }
 
     return labels.map((label, i) => {
-      if (hidePointsAtIndex.includes(i)) {
-        return null;
-      }
+      //if (hidePointsAtIndex.includes(i)) {
+      //  return null;
+      //}
 
       const x =
         (((width - paddingRight - 8) / (labels.length - 1)) * i +

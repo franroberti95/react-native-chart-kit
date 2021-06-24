@@ -223,6 +223,7 @@ export interface LineChartProps extends AbstractChartProps {
    * The number of horizontal lines
    */
   segments?: number;
+  hideLineAtIndex?: number[];
 }
 
 type LineChartState = {
@@ -631,7 +632,11 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
     let lastPoint: string;
 
     data.forEach((dataset, index) => {
-      const points = dataset.data.map((d, i) => {
+      const { hideLineAtIndex } = this.props;
+      const lineData = hideLineAtIndex
+        ? dataset.data.filter((_, i) => !hideLineAtIndex.includes(i))
+        : dataset.data;
+      const points = lineData.map((d, i) => {
         if (d === null) return lastPoint;
         const x =
           (i * (width - paddingRight - 8)) / (dataset.data.length - 1) +
@@ -693,9 +698,22 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
       return Math.floor(((baseHeight - yHeight) / 4) * 3 + paddingTop);
     };
 
-    return [`M${x(0)},${y(0)}`]
+    const { hideLineAtIndex } = this.props;
+    console.log("INDEX TO HIDE!", hideLineAtIndex);
+    const firstIndexWithData = dataset.data.findIndex(i => i !== null);
+    if (firstIndexWithData < 0) return "";
+    console.log("firstIndexWithData", firstIndexWithData);
+    const startX = x(firstIndexWithData);
+    console.log("startX", startX);
+    const startY = y(firstIndexWithData);
+    console.log("startY", startY);
+    if (!startX || !startY) return "";
+
+    return [`M${startX},${startY}`]
       .concat(
         dataset.data.slice(0, -1).map((_, i) => {
+          if (hideLineAtIndex && hideLineAtIndex.includes(i)) return "";
+
           const x_mid = (x(i) + x(i + 1)) / 2;
           const y_mid = (y(i) + y(i + 1)) / 2;
           const cp_x1 = (x_mid + x(i)) / 2;
