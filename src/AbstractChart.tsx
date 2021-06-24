@@ -261,7 +261,8 @@ class AbstractChart<
 
       if (count === 1) {
         yLabel = `${yAxisLabel}${formatYLabel(
-          data[0].toFixed(decimalPlaces)
+          //@ts-ignore
+          data[0]?.toFixed ? data[0].toFixed(decimalPlaces) : data[0]
         )}${yAxisSuffix}`;
       } else {
         const label = this.props.fromZero
