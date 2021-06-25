@@ -49,19 +49,18 @@ class AbstractChart<
   calcScaler = (data: number[]) => {
     if (this.props.fromZero) {
       const toNumber: number[] = [...data, this.props.toNumber || 0];
-      return Math.max(...toNumber, 0) - Math.min(...data, 0) || 1;
+      return Math.max(...toNumber, 0) - this.props.fromNumber || 1;
     } else if (this.props.fromNumber) {
-      return (
-        Math.max(...data, this.props.fromNumber) -
-          Math.min(...data, this.props.fromNumber) || 1
-      );
+      return Math.max(...data) - this.props.fromNumber || 1;
     } else {
-      return Math.max(...data) - Math.min(...data) || 1;
+      return Math.max(...data) - this.props.fromNumber || 1;
     }
   };
 
   calcBaseHeight = (data: number[], height: number) => {
-    const min = Math.min(...data);
+    const min = this.props.fromNumber
+      ? this.props.fromNumber
+      : Math.min(...data);
     const max = this.props.toNumber
       ? Math.max(...[...data, this.props.toNumber])
       : Math.max(...data);
@@ -78,7 +77,9 @@ class AbstractChart<
     const max = this.props.toNumber
       ? Math.max(...[...data, this.props.toNumber])
       : Math.max(...data);
-    const min = Math.min(...data);
+    const min = this.props.fromNumber
+      ? this.props.fromNumber
+      : Math.min(...data);
 
     if (min < 0 && max > 0) {
       return height * (val / this.calcScaler(data));
@@ -171,7 +172,12 @@ class AbstractChart<
         ((baseHeight - this.calcHeight(endValue, datas, height)) / 4) * 3 +
         paddingTop;
       const maxGraphHeight =
-        ((baseHeight - this.calcHeight(Math.min(...datas), datas, height)) /
+        ((baseHeight -
+          this.calcHeight(
+            this.props.fromNumber || Math.min(...datas),
+            datas,
+            height
+          )) /
           4) *
           3 +
         paddingTop;
@@ -179,9 +185,9 @@ class AbstractChart<
         <Line
           key={Math.random()}
           x1={horizontalAlignment}
-          y1={Math.max(Math.min(start, maxGraphHeight), paddingTop)}
+          y1={Math.max(Math.min(start, maxGraphHeight), paddingTop) || 0}
           x2={horizontalAlignment}
-          y2={Math.max(Math.min(end, maxGraphHeight), paddingTop)}
+          y2={Math.max(Math.min(end, maxGraphHeight), paddingTop) || 0}
           stroke={interval.color}
           {...(this.props.yAxisLineProps || {})}
         />
@@ -266,8 +272,10 @@ class AbstractChart<
         )}${yAxisSuffix}`;
       } else {
         const label = this.props.fromZero
-          ? (this.calcScaler(data) / count) * i + Math.min(...data, 0)
-          : (this.calcScaler(data) / count) * i + Math.min(...data);
+          ? (this.calcScaler(data) / count) * i +
+            (this.props.fromNumber || Math.min(...data, 0))
+          : (this.calcScaler(data) / count) * i +
+            (this.props.fromNumber || Math.min(...data));
         yLabel = `${yAxisLabel}${formatYLabel(
           label.toFixed(decimalPlaces)
         )}${yAxisSuffix}`;
