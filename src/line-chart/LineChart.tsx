@@ -700,11 +700,12 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
 
     const { hideLineAtIndex } = this.props;
     const firstIndexWithData = dataset.data.findIndex(
-      i => !hideLineAtIndex.includes(i) && i !== null
+      (item, index) => !hideLineAtIndex.includes(index) && item !== null
     );
     if (firstIndexWithData < 0) return "";
     const startX = x(firstIndexWithData);
     const startY = y(firstIndexWithData);
+
     if (!startX || !startY) return "";
 
     return [`M${startX},${startY}`]
