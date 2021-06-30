@@ -1,4 +1,4 @@
-import React, { ReactNode } from "react";
+import React, { ReactNode, useState } from "react";
 import {
   Animated,
   ScrollView,
@@ -10,11 +10,13 @@ import {
 import {
   Circle,
   G,
+  Line,
   Path,
   Polygon,
   Polyline,
   Rect,
-  Svg
+  Svg,
+  Text
 } from "react-native-svg";
 
 import AbstractChart, {
@@ -25,6 +27,53 @@ import { ChartData, Dataset } from "../HelperTypes";
 import { LegendItem } from "./LegendItem";
 
 let AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+const differenceBetween = (num1: number, num2: number) =>
+  Math.abs(Math.abs(num1) - Math.abs(num2));
+
+const _recursiveFindDot = (
+  needle: number,
+  haystack,
+  start,
+  end,
+  currentIndex
+) => {
+  // Base Condition
+  if (start > end) return currentIndex;
+
+  // Find the middle index
+  let mid = Math.floor((start + end) / 2);
+  let newCurrentIndex =
+    haystack[mid] &&
+    differenceBetween(haystack[mid].x, needle) <
+      differenceBetween(haystack[currentIndex].x, needle)
+      ? mid
+      : currentIndex;
+
+  if (haystack.length === 1) return newCurrentIndex;
+
+  // If element at mid is greater than x,
+  // search in the left half of mid
+  if (haystack[mid].x > needle)
+    return _recursiveFindDot(needle, haystack, start, mid - 1, newCurrentIndex);
+  // If element at mid is smaller than x,
+  // search in the right half of mid
+  else
+    return _recursiveFindDot(needle, haystack, mid + 1, end, newCurrentIndex);
+};
+
+const recursiveFindDot = (
+  needle: number,
+  haystack: { index: number; value: number; x: number; y: number }[]
+) => {
+  return _recursiveFindDot(
+    needle,
+    haystack,
+    0,
+    haystack.length,
+    Math.floor(haystack.length / 2)
+  );
+};
 
 export interface LineChartData extends ChartData {
   legend?: string[];
@@ -224,17 +273,23 @@ export interface LineChartProps extends AbstractChartProps {
    */
   segments?: number;
   hideLineAtIndex?: number[];
+  /*
+   * shows dot info on touch event
+   * */
+  showDotInfoOnTouch?: boolean;
 }
 
 type LineChartState = {
   scrollableDotHorizontalOffset: Animated.Value;
+  touchMoveCoords: { x: number; y: number } | null;
 };
 
 class LineChart extends AbstractChart<LineChartProps, LineChartState> {
   label = React.createRef<TextInput>();
 
   state = {
-    scrollableDotHorizontalOffset: new Animated.Value(0)
+    scrollableDotHorizontalOffset: new Animated.Value(0),
+    touchMoveCoords: null
   };
 
   getColor = (dataset: Dataset, opacity: number) => {
@@ -264,6 +319,78 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
     return { r: "4", ...propsForDots };
   };
 
+  renderDotInfo = ({
+    data,
+    width,
+    height,
+    paddingTop,
+    paddingRight,
+    onDataPointClick
+  }: any) => {
+    if (
+      !this.state.touchMoveCoords ||
+      !this.dotsRendered ||
+      !this.dotsRendered.length
+    )
+      return null;
+    const datas = this.getDatas(data);
+    const baseHeight = this.calcBaseHeight(datas, height);
+
+    const maxGraphHeight =
+      ((baseHeight -
+        this.calcHeight(
+          this.props.fromNumber || Math.min(...datas),
+          datas,
+          height
+        )) /
+        4) *
+        3 +
+      paddingTop;
+    const { x, y } = this.state.touchMoveCoords;
+    /** Merge Datasets **/
+    const mergedDots = [].concat.apply([], this.dotsRendered);
+    /** Get index of the closest x element **/
+    const index = recursiveFindDot(x, mergedDots);
+    const lineX = mergedDots[index].x;
+    const y1 = 0;
+    const y2 = height;
+
+    return (
+      <G>
+        <Rect
+          y={mergedDots[index].y + 10}
+          x={lineX}
+          width={50}
+          height={25}
+          fill="white"
+          rx={12}
+          ry={12}
+        />
+        <Text
+          y={mergedDots[index].y + 28}
+          x={lineX + 24}
+          fill="black"
+          fontSize="16"
+          fontWeight="normal"
+          textAnchor="middle"
+        >
+          {mergedDots[index].value}
+        </Text>
+        <Line
+          key={Math.random()}
+          x1={lineX}
+          y1={maxGraphHeight}
+          x2={lineX}
+          y2={0}
+          stroke={"white"}
+          strokeWidth={2}
+        />
+      </G>
+    );
+  };
+
+  dotsRendered = [];
+
   renderDots = ({
     data,
     width,
@@ -289,9 +416,9 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
       }
     } = this.props;
 
-    data.forEach(dataset => {
+    data.forEach((dataset, datasetIndex) => {
       if (dataset.withDots == false) return;
-
+      const datasetDots = [];
       dataset.data.forEach((x, i) => {
         if (hidePointsAtIndex.includes(i)) {
           return;
@@ -304,6 +431,13 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
         const cy =
           ((baseHeight - this.calcHeight(x, datas, height)) / 4) * 3 +
           paddingTop;
+
+        datasetDots.push({
+          index: i,
+          value: x,
+          x: cx,
+          y: cy
+        });
 
         const onPress = () => {
           if (!onDataPointClick || hidePointsAtIndex.includes(i)) {
@@ -345,6 +479,7 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
           renderDotContent({ x: cx, y: cy, index: i, indexData: x })
         );
       });
+      this.dotsRendered[datasetIndex] = datasetDots;
     });
 
     return output;
@@ -840,7 +975,8 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
       formatXLabel = xLabel => xLabel,
       segments,
       transparent = false,
-      chartConfig
+      chartConfig,
+      showDotInfoOnTouch
     } = this.props;
 
     const { scrollableDotHorizontalOffset } = this.state;
@@ -869,12 +1005,20 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
     }
 
     const legendOffset = this.props.data.legend ? height * 0.15 : 0;
-
     return (
       <View style={style}>
         <Svg
           height={height + (paddingBottom as number) + legendOffset}
           width={width - (margin as number) * 2 - (marginRight as number) + 15}
+          onTouchMove={e =>
+            this.setState({
+              touchMoveCoords: {
+                y: e.nativeEvent.locationY,
+                x: e.nativeEvent.locationX
+              }
+            })
+          }
+          onTouchEnd={() => this.setState({ touchMoveCoords: null })}
         >
           <Rect
             width="100%"
@@ -991,6 +1135,16 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
                   paddingTop: paddingTop as number,
                   paddingRight: paddingRight as number,
                   onDataPointClick
+                })}
+            </G>
+            <G>
+              {showDotInfoOnTouch &&
+                this.renderDotInfo({
+                  ...config,
+                  touchCoords: {},
+                  data: data.datasets,
+                  paddingTop: paddingTop as number,
+                  paddingRight: paddingRight as number
                 })}
             </G>
             <G>
