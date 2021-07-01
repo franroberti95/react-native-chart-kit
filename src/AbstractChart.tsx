@@ -19,6 +19,7 @@ export interface AbstractChartProps {
   yAxisLineProps?: object;
   smallPaddingRight?: boolean;
   yAxisIntervals?: { color: string; to: number; from: number }[];
+  noDecimalsOnTopAndBotValues?: boolean;
 }
 
 export interface AbstractChartConfig extends ChartConfig {
@@ -36,6 +37,7 @@ export interface AbstractChartConfig extends ChartConfig {
   verticalLabelRotation?: number;
   formatXLabel?: (xLabel: string) => string;
   verticalLabelsHeightPercentage?: number;
+  noDecimalsOnTopAndBotValues?: boolean;
 }
 
 export type AbstractChartState = {};
@@ -254,7 +256,8 @@ class AbstractChart<
       horizontalLabelRotation = 0,
       decimalPlaces = 2,
       formatYLabel = (yLabel: string) => yLabel,
-      verticalLabelsHeightPercentage = DEFAULT_X_LABELS_HEIGHT_PERCENTAGE
+      verticalLabelsHeightPercentage = DEFAULT_X_LABELS_HEIGHT_PERCENTAGE,
+      noDecimalsOnTopAndBotValues
     } = config;
 
     const {
@@ -265,10 +268,19 @@ class AbstractChart<
     return new Array(count === 1 ? 1 : count + 1).fill(1).map((_, i) => {
       let yLabel = String(i * count);
 
+      let newDecimalPlaces = decimalPlaces;
+      console.log("HII", noDecimalsOnTopAndBotValues);
+      if (
+        this.props.noDecimalsOnTopAndBotValues &&
+        (i === 0 || i === new Array(count === 1 ? 1 : count + 1).length - 1)
+      ) {
+        newDecimalPlaces = 0;
+      }
+
       if (count === 1) {
         yLabel = `${yAxisLabel}${formatYLabel(
           //@ts-ignore
-          data[0]?.toFixed ? data[0].toFixed(decimalPlaces) : data[0]
+          data[0]?.toFixed ? data[0].toFixed(newDecimalPlaces) : data[0]
         )}${yAxisSuffix}`;
       } else {
         const label = this.props.fromZero
@@ -277,7 +289,7 @@ class AbstractChart<
           : (this.calcScaler(data) / count) * i +
             (this.props.fromNumber || Math.min(...data));
         yLabel = `${yAxisLabel}${formatYLabel(
-          label.toFixed(decimalPlaces)
+          label.toFixed(newDecimalPlaces)
         )}${yAxisSuffix}`;
       }
 

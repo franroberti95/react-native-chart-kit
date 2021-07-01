@@ -31,13 +31,7 @@ let AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const differenceBetween = (num1: number, num2: number) =>
   Math.abs(Math.abs(num1) - Math.abs(num2));
 
-const _recursiveFindDot = (
-  needle: number,
-  haystack,
-  start,
-  end,
-  currentIndex
-) => {
+const _recursiveFindDot = (needle, haystack, start, end, currentIndex) => {
   // Base Condition
   if (start > end) return currentIndex;
 
@@ -63,11 +57,12 @@ const _recursiveFindDot = (
 };
 
 const recursiveFindDot = (
-  needle: number,
+  needle: Animated.Value,
   haystack: { index: number; value: number; x: number; y: number }[]
 ) => {
   return _recursiveFindDot(
-    needle,
+    // @ts-ignore
+    needle.__getValue(),
     haystack,
     0,
     haystack.length,
@@ -281,15 +276,87 @@ export interface LineChartProps extends AbstractChartProps {
 
 type LineChartState = {
   scrollableDotHorizontalOffset: Animated.Value;
-  touchMoveCoords: { x: number; y: number } | null;
+  touchMoveCoords: Animated.Value;
 };
+
+class DotInfoGroup extends React.Component<any, any> {
+  render() {
+    const {
+      touchMoveCoords,
+      getDatas,
+      calcBaseHeight,
+      fromNumber,
+      calcHeight,
+      paddingTop,
+      height,
+      data,
+      dotsRendered
+    } = this.props;
+
+    if (touchMoveCoords < 0 || !dotsRendered || !dotsRendered.length || !data)
+      return null;
+
+    const datas = getDatas(data.datasets);
+    const baseHeight = calcBaseHeight(datas, height);
+
+    const maxGraphHeight =
+      ((baseHeight -
+        calcHeight(fromNumber || Math.min(...datas), datas, height)) /
+        4) *
+        3 +
+      paddingTop;
+    const x = touchMoveCoords;
+    /** Merge Datasets **/
+    const mergedDots = [].concat.apply([], dotsRendered);
+    /** Get index of the closest x element **/
+
+    const index = recursiveFindDot(x, mergedDots);
+    if (!mergedDots[index]) return null;
+    const dotX = mergedDots[index].x;
+    const dotY = mergedDots[index].y;
+    return (
+      <G>
+        <Rect
+          y={dotY + 10}
+          x={dotX}
+          width={50}
+          height={25}
+          fill="white"
+          rx={12}
+          ry={12}
+        />
+        <Text
+          y={dotY + 28}
+          x={dotX + 24}
+          fill="black"
+          fontSize="16"
+          fontWeight="normal"
+          textAnchor="middle"
+        >
+          {mergedDots[index].value}
+        </Text>
+        <Line
+          key={Math.random()}
+          x1={dotX}
+          y1={maxGraphHeight}
+          x2={dotX}
+          y2={0}
+          stroke={"white"}
+          strokeWidth={2}
+        />
+      </G>
+    );
+  }
+}
+
+const AnimatedDotInfoGroup = Animated.createAnimatedComponent(DotInfoGroup);
 
 class LineChart extends AbstractChart<LineChartProps, LineChartState> {
   label = React.createRef<TextInput>();
 
   state = {
     scrollableDotHorizontalOffset: new Animated.Value(0),
-    touchMoveCoords: null
+    touchMoveCoords: new Animated.Value(-1)
   };
 
   getColor = (dataset: Dataset, opacity: number) => {
@@ -317,76 +384,6 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
     const { propsForDots = {} } = chartConfig;
 
     return { r: "4", ...propsForDots };
-  };
-
-  renderDotInfo = ({
-    data,
-    width,
-    height,
-    paddingTop,
-    paddingRight,
-    onDataPointClick
-  }: any) => {
-    if (
-      !this.state.touchMoveCoords ||
-      !this.dotsRendered ||
-      !this.dotsRendered.length
-    )
-      return null;
-    const datas = this.getDatas(data);
-    const baseHeight = this.calcBaseHeight(datas, height);
-
-    const maxGraphHeight =
-      ((baseHeight -
-        this.calcHeight(
-          this.props.fromNumber || Math.min(...datas),
-          datas,
-          height
-        )) /
-        4) *
-        3 +
-      paddingTop;
-    const { x, y } = this.state.touchMoveCoords;
-    /** Merge Datasets **/
-    const mergedDots = [].concat.apply([], this.dotsRendered);
-    /** Get index of the closest x element **/
-    const index = recursiveFindDot(x, mergedDots);
-    const lineX = mergedDots[index].x;
-    const y1 = 0;
-    const y2 = height;
-
-    return (
-      <G>
-        <Rect
-          y={mergedDots[index].y + 10}
-          x={lineX}
-          width={50}
-          height={25}
-          fill="white"
-          rx={12}
-          ry={12}
-        />
-        <Text
-          y={mergedDots[index].y + 28}
-          x={lineX + 24}
-          fill="black"
-          fontSize="16"
-          fontWeight="normal"
-          textAnchor="middle"
-        >
-          {mergedDots[index].value}
-        </Text>
-        <Line
-          key={Math.random()}
-          x1={lineX}
-          y1={maxGraphHeight}
-          x2={lineX}
-          y2={0}
-          stroke={"white"}
-          strokeWidth={2}
-        />
-      </G>
-    );
   };
 
   dotsRendered = [];
@@ -1011,14 +1008,9 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
           height={height + (paddingBottom as number) + legendOffset}
           width={width - (margin as number) * 2 - (marginRight as number) + 15}
           onTouchMove={e =>
-            this.setState({
-              touchMoveCoords: {
-                y: e.nativeEvent.locationY,
-                x: e.nativeEvent.locationX
-              }
-            })
+            this.state.touchMoveCoords.setValue(e.nativeEvent.locationX)
           }
-          onTouchEnd={() => this.setState({ touchMoveCoords: null })}
+          onTouchEnd={() => this.state.touchMoveCoords.setValue(-1)}
         >
           <Rect
             width="100%"
@@ -1062,7 +1054,9 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
                   paddingTop: paddingTop as number,
                   paddingRight: paddingRight as number,
                   formatYLabel,
-                  decimalPlaces: chartConfig.decimalPlaces
+                  decimalPlaces: chartConfig.decimalPlaces,
+                  noDecimalsOnTopAndBotValues: this.props
+                    .noDecimalsOnTopAndBotValues
                 })}
             </G>
             <G>
@@ -1138,14 +1132,19 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
                 })}
             </G>
             <G>
-              {showDotInfoOnTouch &&
-                this.renderDotInfo({
-                  ...config,
-                  touchCoords: {},
-                  data: data.datasets,
-                  paddingTop: paddingTop as number,
-                  paddingRight: paddingRight as number
-                })}
+              {showDotInfoOnTouch && (
+                <AnimatedDotInfoGroup
+                  touchMoveCoords={this.state.touchMoveCoords}
+                  getDatas={this.getDatas}
+                  calcBaseHeight={this.calcBaseHeight}
+                  fromNumber={this.props.fromNumber}
+                  calcHeight={this.calcHeight}
+                  paddingTop={paddingTop}
+                  height={height}
+                  data={data}
+                  dotsRendered={this.dotsRendered}
+                />
+              )}
             </G>
             <G>
               {withScrollableDot &&
