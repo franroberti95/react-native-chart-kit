@@ -269,7 +269,6 @@ class AbstractChart<
       let yLabel = String(i * count);
 
       let newDecimalPlaces = decimalPlaces;
-      console.log("HII", noDecimalsOnTopAndBotValues);
       if (
         this.props.noDecimalsOnTopAndBotValues &&
         (i === 0 || i === new Array(count === 1 ? 1 : count + 1).length - 1)
@@ -329,7 +328,9 @@ class AbstractChart<
     stackedBar = false,
     verticalLabelRotation = 0,
     formatXLabel = xLabel => xLabel,
-    verticalLabelsHeightPercentage = DEFAULT_X_LABELS_HEIGHT_PERCENTAGE
+    verticalLabelsHeightPercentage = DEFAULT_X_LABELS_HEIGHT_PERCENTAGE,
+    // @ts-ignore
+    isBarChart = false
   }: Pick<
     AbstractChartConfig,
     | "labels"
@@ -362,7 +363,8 @@ class AbstractChart<
       //}
 
       const x =
-        (((width - paddingRight - 8) / (labels.length - 1)) * i +
+        (((width - paddingRight - 8) / (labels.length - (isBarChart ? 0 : 1))) *
+          i +
           paddingRight +
           horizontalOffset) *
         fac;

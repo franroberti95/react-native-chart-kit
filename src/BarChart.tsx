@@ -1,8 +1,9 @@
 import React from "react";
-import { View, ViewStyle } from "react-native";
+import { Animated, View, ViewStyle } from "react-native";
 import {
   Defs,
   G,
+  Line,
   LinearGradient,
   Rect,
   Stop,
@@ -46,15 +47,167 @@ export interface BarChartProps extends AbstractChartProps {
   showValuesOnTopOfBars?: boolean;
   withCustomBarColorFromData?: boolean;
   flatColor?: boolean;
+  transparent?: boolean;
+  showBarInfoOnTouch?: boolean;
+  dotInfoModalProps?: any;
+  labels?: string[];
 }
 
-type BarChartState = {};
+const differenceBetween = (num1: number, num2: number) =>
+  Math.abs(Math.abs(num1) - Math.abs(num2));
+
+const _recursiveFindBar = (needle, haystack, start, end, currentIndex) => {
+  // Base Condition
+  if (start > end) return currentIndex;
+
+  // Find the middle index
+  let mid = Math.floor((start + end) / 2);
+  let newCurrentIndex =
+    haystack[mid] &&
+    haystack[mid].x &&
+    differenceBetween(haystack[mid].x, needle) <
+      differenceBetween(haystack[currentIndex].x, needle)
+      ? mid
+      : currentIndex;
+
+  if (haystack.length === 1) return newCurrentIndex;
+  if (!haystack[mid]) return haystack.length - 1;
+
+  // If element at mid is greater than x,
+  // search in the left half of mid
+  if (haystack[mid].x > needle)
+    return _recursiveFindBar(needle, haystack, start, mid - 1, newCurrentIndex);
+  // If element at mid is smaller than x,
+  // search in the right half of mid
+  else
+    return _recursiveFindBar(needle, haystack, mid + 1, end, newCurrentIndex);
+};
+
+const recursiveFindBar = (
+  needle: Animated.Value,
+  haystack: { index: number; value: number; x: number; y: number }[]
+) => {
+  return _recursiveFindBar(
+    // @ts-ignore
+    needle,
+    haystack,
+    0,
+    haystack.length,
+    Math.floor(haystack.length / 2)
+  );
+};
+
+class DotInfoGroup extends React.Component<any, any> {
+  render() {
+    const {
+      dotInfoModalProps,
+      touchMoveXCoords,
+      touchMoveYCoords,
+      calcBaseHeight,
+      fromNumber,
+      calcHeight,
+      paddingTop,
+      height,
+      data,
+      paddingRight,
+      barsRendered,
+      barRadius,
+      width
+    } = this.props;
+
+    const { units } = dotInfoModalProps || {};
+
+    if (touchMoveXCoords < 0 || !data) return null;
+
+    const baseHeight = calcBaseHeight(data, height);
+
+    const maxGraphHeight =
+      ((baseHeight -
+        calcHeight(fromNumber || Math.min(...data), data, height)) /
+        4) *
+        3 +
+      paddingTop;
+    const x = touchMoveXCoords;
+    /** Get index of the closest x element **/
+    const index = recursiveFindBar(x, barsRendered);
+    if (!barsRendered[index]) return null;
+    const dotX = barsRendered[index].x;
+    const dotY = barsRendered[index].y;
+    const barWidth = barsRendered[index].barWidth;
+    const rectHeight = barsRendered[index].height;
+    let infoTextGoesOnTop = true;
+    if ((touchMoveYCoords < dotY && dotY < maxGraphHeight - 25) || dotY < 50) {
+      infoTextGoesOnTop = false;
+    }
+
+    return (
+      <G>
+        <Rect
+          y={dotY + (infoTextGoesOnTop ? -45 : 8)}
+          x={Math.min(
+            Math.max(dotX - 40, paddingRight),
+            width - paddingRight - 24
+          )}
+          width={80}
+          height={40}
+          fill="white"
+          rx={12}
+          ry={12}
+        />
+        <Text
+          y={dotY + (infoTextGoesOnTop ? -28 : 26)}
+          x={Math.min(Math.max(dotX, paddingRight + 40), width - 45)}
+          fill="black"
+          fontSize="10"
+          fontWeight="bold"
+          textAnchor="middle"
+        >
+          {barsRendered[index].value + " " + (units || "")}
+        </Text>
+        <Text
+          y={dotY + (infoTextGoesOnTop ? -15 : 39)}
+          x={Math.min(Math.max(dotX, paddingRight + 40), width - 45)}
+          fill="black"
+          fontSize="8"
+          textAnchor="middle"
+        >
+          {data?.labels[index]}
+        </Text>
+        <Rect
+          key={Math.random()}
+          x={dotX}
+          y={dotY}
+          rx={barRadius}
+          width={barWidth}
+          height={rectHeight}
+          fill={"transparent"}
+          stroke="#fff"
+          strokeWidth={2}
+        />
+      </G>
+    );
+  }
+}
+
+const AnimatedDotInfoGroup = Animated.createAnimatedComponent(DotInfoGroup);
+
+type BarChartState = {
+  touchMoveXCoords: Animated.Value;
+  touchMoveYCoords: Animated.Value;
+};
 
 class BarChart extends AbstractChart<BarChartProps, BarChartState> {
+  state = {
+    touchMoveXCoords: new Animated.Value(-1),
+    touchMoveYCoords: new Animated.Value(-1)
+  };
+
   getBarPercentage = () => {
     const { barPercentage = 1 } = this.props.chartConfig;
     return barPercentage;
   };
+
+  barsRendered = [];
 
   renderBars = ({
     data,
@@ -72,25 +225,38 @@ class BarChart extends AbstractChart<BarChartProps, BarChartState> {
     withCustomBarColorFromData: boolean;
   }) => {
     const baseHeight = this.calcBaseHeight(data, height);
-
+    this.barsRendered = [];
     return data.map((x, i) => {
       const barHeight = this.calcHeight(x, data, height);
       const barWidth = 32 * this.getBarPercentage();
+
+      const rectX =
+        paddingRight +
+        (i * (width - paddingRight)) / data.length +
+        barWidth / 2;
+      const y =
+        ((barHeight > 0 ? baseHeight - barHeight : baseHeight) / 4) * 3 +
+        paddingTop;
+
+      const rectHeight = (Math.abs(barHeight) / 4) * 3;
+
+      this.barsRendered.push({
+        index: i,
+        value: x,
+        x: rectX,
+        y,
+        barWidth,
+        height: rectHeight
+      });
+
       return (
         <Rect
           key={Math.random()}
-          x={
-            paddingRight +
-            (i * (width - paddingRight)) / data.length +
-            barWidth / 2
-          }
-          y={
-            ((barHeight > 0 ? baseHeight - barHeight : baseHeight) / 4) * 3 +
-            paddingTop
-          }
+          x={rectX}
+          y={y}
           rx={barRadius}
           width={barWidth}
-          height={(Math.abs(barHeight) / 4) * 3}
+          height={rectHeight}
           fill={
             withCustomBarColorFromData
               ? `url(#customColor_0_${i})`
@@ -106,12 +272,14 @@ class BarChart extends AbstractChart<BarChartProps, BarChartState> {
     width,
     height,
     paddingTop,
-    paddingRight
+    paddingRight,
+    withCustomBarColorFromData
   }: Pick<
     Omit<AbstractChartConfig, "data">,
     "width" | "height" | "paddingRight" | "paddingTop"
   > & {
     data: number[];
+    withCustomBarColorFromData?: boolean;
   }) => {
     const baseHeight = this.calcBaseHeight(data, height);
 
@@ -128,8 +296,12 @@ class BarChart extends AbstractChart<BarChartProps, BarChartState> {
           }
           y={((baseHeight - barHeight) / 4) * 3 + paddingTop}
           width={barWidth}
-          height={2}
-          fill={this.props.chartConfig.color(0.6)}
+          height={1}
+          fill={
+            withCustomBarColorFromData
+              ? `url(#customColor_0_${i})`
+              : this.props.chartConfig.color(0.6)
+          }
         />
       );
     });
@@ -160,8 +332,8 @@ class BarChart extends AbstractChart<BarChartProps, BarChartState> {
               {flatColor ? (
                 <Stop offset="1" stopColor={highOpacityColor} stopOpacity="1" />
               ) : (
-                  <Stop offset="1" stopColor={lowOpacityColor} stopOpacity="0" />
-                )}
+                <Stop offset="1" stopColor={lowOpacityColor} stopOpacity="0" />
+              )}
             </LinearGradient>
           );
         })}
@@ -205,6 +377,20 @@ class BarChart extends AbstractChart<BarChartProps, BarChartState> {
     });
   };
 
+  timeout = null;
+  onTouchEnd = () => {
+    if (this.timeout) clearTimeout(this.timeout);
+    this.timeout = setTimeout(() => {
+      this.state.touchMoveXCoords.setValue(-1);
+      this.state.touchMoveYCoords.setValue(-1);
+    }, 3000);
+  };
+  onTouchMove = e => {
+    if (this.timeout) clearTimeout(this.timeout);
+    this.state.touchMoveXCoords.setValue(e.nativeEvent.locationX);
+    this.state.touchMoveYCoords.setValue(e.nativeEvent.locationY);
+  };
+
   render() {
     const {
       width,
@@ -220,7 +406,10 @@ class BarChart extends AbstractChart<BarChartProps, BarChartState> {
       withCustomBarColorFromData = false,
       showValuesOnTopOfBars = false,
       flatColor = false,
-      segments = 4
+      segments = 4,
+      transparent = false,
+      showBarInfoOnTouch,
+      labels
     } = this.props;
 
     const { borderRadius = 0, paddingTop = 16, paddingRight = 64 } = style;
@@ -236,19 +425,24 @@ class BarChart extends AbstractChart<BarChartProps, BarChartState> {
         (this.props.chartConfig && this.props.chartConfig.decimalPlaces) ?? 2,
       formatYLabel:
         (this.props.chartConfig && this.props.chartConfig.formatYLabel) ||
-        function (label) {
+        function(label) {
           return label;
         },
       formatXLabel:
         (this.props.chartConfig && this.props.chartConfig.formatXLabel) ||
-        function (label) {
+        function(label) {
           return label;
         }
     };
 
     return (
       <View style={style}>
-        <Svg height={height} width={width}>
+        <Svg
+          height={height}
+          width={width}
+          onTouchMove={this.onTouchMove}
+          onTouchEnd={this.onTouchEnd}
+        >
           {this.renderDefs({
             ...config,
             ...this.props.chartConfig
@@ -263,37 +457,39 @@ class BarChart extends AbstractChart<BarChartProps, BarChartState> {
             height={height}
             rx={borderRadius}
             ry={borderRadius}
-            fill="url(#backgroundGradient)"
+            fill={transparent ? "transparent" : "url(#backgroundGradient)"}
           />
           <G>
             {withInnerLines
               ? this.renderHorizontalLines({
-                ...config,
-                count: segments,
-                paddingTop
-              })
+                  ...config,
+                  count: segments,
+                  paddingTop,
+                  paddingRight
+                })
               : null}
           </G>
           <G>
             {withHorizontalLabels
               ? this.renderHorizontalLabels({
-                ...config,
-                count: segments,
-                data: data.datasets[0].data,
-                paddingTop: paddingTop as number,
-                paddingRight: paddingRight as number
-              })
+                  ...config,
+                  count: segments,
+                  data: data.datasets[0].data,
+                  paddingTop: paddingTop as number,
+                  paddingRight: paddingRight as number
+                })
               : null}
           </G>
           <G>
             {withVerticalLabels
               ? this.renderVerticalLabels({
-                ...config,
-                labels: data.labels,
-                paddingRight: paddingRight as number,
-                paddingTop: paddingTop as number,
-                horizontalOffset: barWidth * this.getBarPercentage()
-              })
+                  ...config,
+                  labels: data.labels,
+                  isBarChart: true,
+                  paddingRight: paddingRight as number,
+                  paddingTop: paddingTop as number,
+                  horizontalOffset: barWidth * this.getBarPercentage()
+                })
               : null}
           </G>
           <G>
@@ -320,8 +516,30 @@ class BarChart extends AbstractChart<BarChartProps, BarChartState> {
                 ...config,
                 data: data.datasets[0].data,
                 paddingTop: paddingTop as number,
-                paddingRight: paddingRight as number
+                paddingRight: paddingRight as number,
+                withCustomBarColorFromData
               })}
+          </G>
+          <G>
+            {showBarInfoOnTouch && (
+              <AnimatedDotInfoGroup
+                touchMoveXCoords={this.state.touchMoveXCoords}
+                touchMoveYCoords={this.state.touchMoveYCoords}
+                calcBaseHeight={this.calcBaseHeight}
+                fromNumber={this.props.fromNumber}
+                calcHeight={this.calcHeight}
+                getBarPercentage={this.getBarPercentage}
+                paddingTop={paddingTop}
+                paddingRight={paddingRight}
+                dotInfoModalProps={this.props.dotInfoModalProps}
+                height={height}
+                width={width}
+                barRadius={config.barRadius}
+                data={data}
+                labels={labels}
+                barsRendered={this.barsRendered}
+              />
+            )}
           </G>
         </Svg>
       </View>

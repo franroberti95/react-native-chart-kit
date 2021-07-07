@@ -16,7 +16,8 @@ import {
   Polyline,
   Rect,
   Svg,
-  Text
+  Text,
+  TSpan
 } from "react-native-svg";
 
 import AbstractChart, {
@@ -39,13 +40,14 @@ const _recursiveFindDot = (needle, haystack, start, end, currentIndex) => {
   let mid = Math.floor((start + end) / 2);
   let newCurrentIndex =
     haystack[mid] &&
+    haystack[mid].x &&
     differenceBetween(haystack[mid].x, needle) <
       differenceBetween(haystack[currentIndex].x, needle)
       ? mid
       : currentIndex;
 
   if (haystack.length === 1) return newCurrentIndex;
-
+  if (!haystack[mid]) return haystack.length - 1;
   // If element at mid is greater than x,
   // search in the left half of mid
   if (haystack[mid].x > needle)
@@ -62,7 +64,7 @@ const recursiveFindDot = (
 ) => {
   return _recursiveFindDot(
     // @ts-ignore
-    needle.__getValue(),
+    needle,
     haystack,
     0,
     haystack.length,
@@ -272,17 +274,21 @@ export interface LineChartProps extends AbstractChartProps {
    * shows dot info on touch event
    * */
   showDotInfoOnTouch?: boolean;
+  dotInfoModalProps?: any;
 }
 
 type LineChartState = {
   scrollableDotHorizontalOffset: Animated.Value;
-  touchMoveCoords: Animated.Value;
+  touchMoveXCoords: Animated.Value;
+  touchMoveYCoords: Animated.Value;
 };
 
 class DotInfoGroup extends React.Component<any, any> {
   render() {
     const {
-      touchMoveCoords,
+      dotInfoModalProps,
+      touchMoveXCoords,
+      touchMoveYCoords,
       getDatas,
       calcBaseHeight,
       fromNumber,
@@ -290,10 +296,15 @@ class DotInfoGroup extends React.Component<any, any> {
       paddingTop,
       height,
       data,
-      dotsRendered
+      dotsRendered,
+      width,
+      paddingRight,
+      labels
     } = this.props;
 
-    if (touchMoveCoords < 0 || !dotsRendered || !dotsRendered.length || !data)
+    const { units } = dotInfoModalProps || {};
+
+    if (touchMoveXCoords < 0 || !dotsRendered || !dotsRendered.length || !data)
       return null;
 
     const datas = getDatas(data.datasets);
@@ -305,7 +316,7 @@ class DotInfoGroup extends React.Component<any, any> {
         4) *
         3 +
       paddingTop;
-    const x = touchMoveCoords;
+    const x = touchMoveXCoords;
     /** Merge Datasets **/
     const mergedDots = [].concat.apply([], dotsRendered);
     /** Get index of the closest x element **/
@@ -314,26 +325,44 @@ class DotInfoGroup extends React.Component<any, any> {
     if (!mergedDots[index]) return null;
     const dotX = mergedDots[index].x;
     const dotY = mergedDots[index].y;
+    const xValue = labels[mergedDots[index].index];
+    let infoTextGoesOnTop = true;
+    if ((touchMoveYCoords < dotY && dotY < maxGraphHeight - 25) || dotY < 50) {
+      infoTextGoesOnTop = false;
+    }
+
     return (
       <G>
         <Rect
-          y={dotY + 10}
-          x={dotX}
-          width={50}
-          height={25}
+          y={dotY + (infoTextGoesOnTop ? -45 : 8)}
+          x={Math.min(
+            Math.max(dotX - 40, paddingRight),
+            width - paddingRight - 24
+          )}
+          width={80}
+          height={40}
           fill="white"
           rx={12}
           ry={12}
         />
         <Text
-          y={dotY + 28}
-          x={dotX + 24}
+          y={dotY + (infoTextGoesOnTop ? -28 : 26)}
+          x={Math.min(Math.max(dotX, paddingRight + 40), width - 35)}
           fill="black"
-          fontSize="16"
-          fontWeight="normal"
+          fontSize="10"
+          fontWeight="bold"
           textAnchor="middle"
         >
-          {mergedDots[index].value}
+          {mergedDots[index].value + " " + units}
+        </Text>
+        <Text
+          y={dotY + (infoTextGoesOnTop ? -15 : 39)}
+          x={Math.min(Math.max(dotX, paddingRight + 40), width - 35)}
+          fill="black"
+          fontSize="8"
+          textAnchor="middle"
+        >
+          {xValue}
         </Text>
         <Line
           key={Math.random()}
@@ -341,6 +370,17 @@ class DotInfoGroup extends React.Component<any, any> {
           y1={maxGraphHeight}
           x2={dotX}
           y2={0}
+          strokeDasharray={"4 1"}
+          stroke={"white"}
+          strokeWidth={2}
+        />
+        <Line
+          key={Math.random()}
+          x1={0}
+          y1={dotY}
+          x2={width}
+          y2={dotY}
+          strokeDasharray={"4 1"}
           stroke={"white"}
           strokeWidth={2}
         />
@@ -356,7 +396,8 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
 
   state = {
     scrollableDotHorizontalOffset: new Animated.Value(0),
-    touchMoveCoords: new Animated.Value(-1)
+    touchMoveXCoords: new Animated.Value(-1),
+    touchMoveYCoords: new Animated.Value(-1)
   };
 
   getColor = (dataset: Dataset, opacity: number) => {
@@ -948,6 +989,20 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
     ));
   };
 
+  timeout = null;
+  onTouchEnd = () => {
+    if (this.timeout) clearTimeout(this.timeout);
+    this.timeout = setTimeout(() => {
+      this.state.touchMoveXCoords.setValue(-1);
+      this.state.touchMoveYCoords.setValue(-1);
+    }, 3000);
+  };
+  onTouchMove = e => {
+    if (this.timeout) clearTimeout(this.timeout);
+    this.state.touchMoveXCoords.setValue(e.nativeEvent.locationX);
+    this.state.touchMoveYCoords.setValue(e.nativeEvent.locationY);
+  };
+
   render() {
     const {
       width,
@@ -1007,10 +1062,8 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
         <Svg
           height={height + (paddingBottom as number) + legendOffset}
           width={width - (margin as number) * 2 - (marginRight as number) + 15}
-          onTouchMove={e =>
-            this.state.touchMoveCoords.setValue(e.nativeEvent.locationX)
-          }
-          onTouchEnd={() => this.state.touchMoveCoords.setValue(-1)}
+          onTouchMove={this.onTouchMove}
+          onTouchEnd={this.onTouchEnd}
         >
           <Rect
             width="100%"
@@ -1134,14 +1187,19 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
             <G>
               {showDotInfoOnTouch && (
                 <AnimatedDotInfoGroup
-                  touchMoveCoords={this.state.touchMoveCoords}
+                  touchMoveXCoords={this.state.touchMoveXCoords}
+                  touchMoveYCoords={this.state.touchMoveYCoords}
                   getDatas={this.getDatas}
                   calcBaseHeight={this.calcBaseHeight}
                   fromNumber={this.props.fromNumber}
                   calcHeight={this.calcHeight}
                   paddingTop={paddingTop}
+                  paddingRight={paddingRight}
+                  dotInfoModalProps={this.props.dotInfoModalProps}
                   height={height}
+                  width={width}
                   data={data}
+                  labels={labels}
                   dotsRendered={this.dotsRendered}
                 />
               )}
