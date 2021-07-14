@@ -51,6 +51,8 @@ export interface BarChartProps extends AbstractChartProps {
   showBarInfoOnTouch?: boolean;
   dotInfoModalProps?: any;
   labels?: string[];
+  labelInTooltipFormatter?: (label: string) => string;
+  tooltipLabels?: string[];
 }
 
 const differenceBetween = (num1: number, num2: number) =>
@@ -112,7 +114,9 @@ class DotInfoGroup extends React.Component<any, any> {
       paddingRight,
       barsRendered,
       barRadius,
-      width
+      width,
+      labelInTooltipFormatter,
+      tooltipLabels
     } = this.props;
 
     const { units } = dotInfoModalProps || {};
@@ -139,9 +143,26 @@ class DotInfoGroup extends React.Component<any, any> {
     if ((touchMoveYCoords < dotY && dotY < maxGraphHeight - 25) || dotY < 50) {
       infoTextGoesOnTop = false;
     }
+    const tooltipLabel = tooltipLabels
+      ? tooltipLabels[index]
+      : (data?.labels[index] &&
+          labelInTooltipFormatter &&
+          labelInTooltipFormatter(data?.labels[index])) ||
+        data?.labels[index];
 
     return (
       <G>
+        <Rect
+          key={Math.random()}
+          x={dotX}
+          y={dotY}
+          rx={barRadius}
+          width={barWidth}
+          height={rectHeight}
+          fill={"transparent"}
+          stroke="#fff"
+          strokeWidth={2}
+        />
         <Rect
           y={dotY + (infoTextGoesOnTop ? -45 : 8)}
           x={Math.min(
@@ -171,19 +192,8 @@ class DotInfoGroup extends React.Component<any, any> {
           fontSize="8"
           textAnchor="middle"
         >
-          {data?.labels[index]}
+          {tooltipLabel}
         </Text>
-        <Rect
-          key={Math.random()}
-          x={dotX}
-          y={dotY}
-          rx={barRadius}
-          width={barWidth}
-          height={rectHeight}
-          fill={"transparent"}
-          stroke="#fff"
-          strokeWidth={2}
-        />
       </G>
     );
   }
@@ -383,7 +393,7 @@ class BarChart extends AbstractChart<BarChartProps, BarChartState> {
     this.timeout = setTimeout(() => {
       this.state.touchMoveXCoords.setValue(-1);
       this.state.touchMoveYCoords.setValue(-1);
-    }, 3000);
+    }, 1000);
   };
   onTouchMove = e => {
     if (this.timeout) clearTimeout(this.timeout);
@@ -412,7 +422,7 @@ class BarChart extends AbstractChart<BarChartProps, BarChartState> {
       labels
     } = this.props;
 
-    const { borderRadius = 0, paddingTop = 16, paddingRight = 64 } = style;
+    const { borderRadius = 0, paddingTop = 16, paddingRight = 46 } = style;
 
     const config = {
       width,
@@ -442,6 +452,7 @@ class BarChart extends AbstractChart<BarChartProps, BarChartState> {
           width={width}
           onTouchMove={this.onTouchMove}
           onTouchEnd={this.onTouchEnd}
+          onTouchStart={this.onTouchMove}
         >
           {this.renderDefs({
             ...config,
@@ -485,6 +496,7 @@ class BarChart extends AbstractChart<BarChartProps, BarChartState> {
               ? this.renderVerticalLabels({
                   ...config,
                   labels: data.labels,
+                  // @ts-ignore
                   isBarChart: true,
                   paddingRight: paddingRight as number,
                   paddingTop: paddingTop as number,
@@ -532,6 +544,8 @@ class BarChart extends AbstractChart<BarChartProps, BarChartState> {
                 paddingTop={paddingTop}
                 paddingRight={paddingRight}
                 dotInfoModalProps={this.props.dotInfoModalProps}
+                labelInTooltipFormatter={this.props.labelInTooltipFormatter}
+                tooltipLabels={this.props.tooltipLabels}
                 height={height}
                 width={width}
                 barRadius={config.barRadius}

@@ -275,6 +275,8 @@ export interface LineChartProps extends AbstractChartProps {
    * */
   showDotInfoOnTouch?: boolean;
   dotInfoModalProps?: any;
+  labelInTooltipFormatter?: (label: string) => string;
+  tooltipLabels?: string[];
 }
 
 type LineChartState = {
@@ -299,7 +301,9 @@ class DotInfoGroup extends React.Component<any, any> {
       dotsRendered,
       width,
       paddingRight,
-      labels
+      labels,
+      labelInTooltipFormatter,
+      tooltipLabels
     } = this.props;
 
     const { units } = dotInfoModalProps || {};
@@ -331,8 +335,47 @@ class DotInfoGroup extends React.Component<any, any> {
       infoTextGoesOnTop = false;
     }
 
+    const tooltipLabel = tooltipLabels
+      ? tooltipLabels[index]
+      : (xValue &&
+          labelInTooltipFormatter &&
+          labelInTooltipFormatter(xValue)) ||
+        xValue;
+
     return (
       <G>
+        <Line
+          key={Math.random()}
+          x1={dotX}
+          y1={maxGraphHeight}
+          x2={dotX}
+          y2={0}
+          strokeDasharray={"4 2"}
+          stroke={"#F6F6F5"}
+          strokeWidth={1}
+        />
+        <Circle
+          key={Math.random()}
+          cx={dotX}
+          cy={dotY}
+          fill={"white"}
+          r={4}
+          stroke={mergedDots[index].color}
+          strokeWidth={2}
+        />
+        {/* Horizontal line
+          *
+        <Line
+          key={Math.random()}
+          x1={0}
+          y1={dotY}
+          x2={width}
+          y2={dotY}
+          strokeDasharray={"4 1"}
+          stroke={"white"}
+          strokeWidth={2}
+        />
+          * */}
         <Rect
           y={dotY + (infoTextGoesOnTop ? -45 : 8)}
           x={Math.min(
@@ -362,28 +405,8 @@ class DotInfoGroup extends React.Component<any, any> {
           fontSize="8"
           textAnchor="middle"
         >
-          {xValue}
+          {tooltipLabel}
         </Text>
-        <Line
-          key={Math.random()}
-          x1={dotX}
-          y1={maxGraphHeight}
-          x2={dotX}
-          y2={0}
-          strokeDasharray={"4 1"}
-          stroke={"white"}
-          strokeWidth={2}
-        />
-        <Line
-          key={Math.random()}
-          x1={0}
-          y1={dotY}
-          x2={width}
-          y2={dotY}
-          strokeDasharray={"4 1"}
-          stroke={"white"}
-          strokeWidth={2}
-        />
       </G>
     );
   }
@@ -474,7 +497,11 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
           index: i,
           value: x,
           x: cx,
-          y: cy
+          y: cy,
+          color:
+            typeof getDotColor === "function"
+              ? getDotColor(x, i)
+              : this.getColor(dataset, 0.9)
         });
 
         const onPress = () => {
@@ -995,7 +1022,7 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
     this.timeout = setTimeout(() => {
       this.state.touchMoveXCoords.setValue(-1);
       this.state.touchMoveYCoords.setValue(-1);
-    }, 3000);
+    }, 1000);
   };
   onTouchMove = e => {
     if (this.timeout) clearTimeout(this.timeout);
@@ -1064,6 +1091,7 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
           width={width - (margin as number) * 2 - (marginRight as number) + 15}
           onTouchMove={this.onTouchMove}
           onTouchEnd={this.onTouchEnd}
+          onTouchStart={this.onTouchMove}
         >
           <Rect
             width="100%"
@@ -1193,12 +1221,14 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
                   calcBaseHeight={this.calcBaseHeight}
                   fromNumber={this.props.fromNumber}
                   calcHeight={this.calcHeight}
+                  labelInTooltipFormatter={this.props.labelInTooltipFormatter}
                   paddingTop={paddingTop}
                   paddingRight={paddingRight}
                   dotInfoModalProps={this.props.dotInfoModalProps}
                   height={height}
                   width={width}
                   data={data}
+                  tooltipLabels={this.props.tooltipLabels}
                   labels={labels}
                   dotsRendered={this.dotsRendered}
                 />
