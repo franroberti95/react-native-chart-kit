@@ -364,7 +364,8 @@ class AbstractChart<
 
       const x =
         (((width - paddingRight - 8) / (labels.length - (isBarChart ? 0 : 1))) *
-          i +
+          i *
+          (isBarChart ? 1.013 : 1) +
           paddingRight +
           horizontalOffset) *
         fac;

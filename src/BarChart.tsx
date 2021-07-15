@@ -150,6 +150,8 @@ class DotInfoGroup extends React.Component<any, any> {
           labelInTooltipFormatter(data?.labels[index])) ||
         data?.labels[index];
 
+    const halfOfBarWidth = barWidth / 2;
+
     return (
       <G>
         <Rect
@@ -166,8 +168,8 @@ class DotInfoGroup extends React.Component<any, any> {
         <Rect
           y={dotY + (infoTextGoesOnTop ? -45 : 8)}
           x={Math.min(
-            Math.max(dotX - 40, paddingRight),
-            width - paddingRight - 24
+            Math.max(dotX - 40 + halfOfBarWidth, paddingRight),
+            width - paddingRight - 24 - barWidth
           )}
           width={80}
           height={40}
@@ -177,7 +179,10 @@ class DotInfoGroup extends React.Component<any, any> {
         />
         <Text
           y={dotY + (infoTextGoesOnTop ? -28 : 26)}
-          x={Math.min(Math.max(dotX, paddingRight + 40), width - 45)}
+          x={Math.min(
+            Math.max(dotX + halfOfBarWidth, paddingRight + 40),
+            width - 45
+          )}
           fill="black"
           fontSize="10"
           fontWeight="bold"
@@ -187,7 +192,10 @@ class DotInfoGroup extends React.Component<any, any> {
         </Text>
         <Text
           y={dotY + (infoTextGoesOnTop ? -15 : 39)}
-          x={Math.min(Math.max(dotX, paddingRight + 40), width - 45)}
+          x={Math.min(
+            Math.max(dotX + halfOfBarWidth, paddingRight + 40),
+            width - 45
+          )}
           fill="black"
           fontSize="8"
           textAnchor="middle"
