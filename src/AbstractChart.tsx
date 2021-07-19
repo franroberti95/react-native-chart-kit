@@ -20,6 +20,7 @@ export interface AbstractChartProps {
   smallPaddingRight?: boolean;
   yAxisIntervals?: { color: string; to: number; from: number }[];
   noDecimalsOnTopAndBotValues?: boolean;
+  yAxisUnitLabel?: string;
 }
 
 export interface AbstractChartConfig extends ChartConfig {
@@ -316,6 +317,35 @@ class AbstractChart<
         </Text>
       );
     });
+  };
+
+  renderYUnitsLabel = config => {
+    const {
+      count,
+      height,
+      paddingTop,
+      paddingRight,
+      verticalLabelsHeightPercentage = DEFAULT_X_LABELS_HEIGHT_PERCENTAGE
+    } = config;
+    const { yAxisUnitLabel, yLabelsOffset = 12 } = this.props;
+    const x = paddingRight - yLabelsOffset + 3;
+    const y =
+      count === 1 && this.props.fromZero
+        ? paddingTop + 4
+        : height * verticalLabelsHeightPercentage + paddingTop;
+
+    return yAxisUnitLabel ? (
+      <Text
+        origin={`${x}, ${y}`}
+        x={x}
+        textAnchor="middle"
+        y={0}
+        {...this.getPropsForLabels()}
+        {...this.getPropsForHorizontalLabels()}
+      >
+        {yAxisUnitLabel}
+      </Text>
+    ) : null;
   };
 
   renderVerticalLabels = ({

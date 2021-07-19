@@ -188,7 +188,9 @@ class DotInfoGroup extends React.Component<any, any> {
           fontWeight="bold"
           textAnchor="middle"
         >
-          {barsRendered[index].value + " " + (units || "")}
+          {barsRendered[index].value
+            ? barsRendered[index].value.toFixed(2) + " " + (units || "")
+            : ""}
         </Text>
         <Text
           y={dotY + (infoTextGoesOnTop ? -15 : 39)}

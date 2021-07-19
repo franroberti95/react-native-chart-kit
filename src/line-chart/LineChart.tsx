@@ -349,7 +349,7 @@ class DotInfoGroup extends React.Component<any, any> {
           x1={dotX}
           y1={maxGraphHeight}
           x2={dotX}
-          y2={0}
+          y2={3}
           strokeDasharray={"4 2"}
           stroke={"#F6F6F5"}
           strokeWidth={1}
@@ -396,7 +396,9 @@ class DotInfoGroup extends React.Component<any, any> {
           fontWeight="bold"
           textAnchor="middle"
         >
-          {mergedDots[index].value + " " + units}
+          {mergedDots[index].value
+            ? mergedDots[index].value.toFixed(2) + " " + units
+            : ""}
         </Text>
         <Text
           y={dotY + (infoTextGoesOnTop ? -15 : 39)}
