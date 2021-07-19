@@ -303,9 +303,12 @@ class BarChart extends AbstractChart<BarChartProps, BarChartState> {
   }) => {
     const baseHeight = this.calcBaseHeight(data, height);
 
+    const minY = height * 0.75 + paddingTop;
+
     return data.map((x, i) => {
       const barHeight = this.calcHeight(x, data, height);
       const barWidth = 32 * this.getBarPercentage();
+      const yHeight = ((baseHeight - barHeight) / 4) * 3 + paddingTop;
       return (
         <Rect
           key={Math.random()}
@@ -314,7 +317,7 @@ class BarChart extends AbstractChart<BarChartProps, BarChartState> {
             (i * (width - paddingRight)) / data.length +
             barWidth / 2
           }
-          y={((baseHeight - barHeight) / 4) * 3 + paddingTop}
+          y={yHeight < minY ? minY : yHeight}
           width={barWidth}
           height={1}
           fill={
