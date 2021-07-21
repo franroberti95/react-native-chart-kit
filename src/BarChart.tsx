@@ -247,6 +247,7 @@ class BarChart extends AbstractChart<BarChartProps, BarChartState> {
     const baseHeight = this.calcBaseHeight(data, height);
     this.barsRendered = [];
     return data.map((x, i) => {
+      if (x === null) return null;
       const barHeight = this.calcHeight(x, data, height);
       const barWidth = 32 * this.getBarPercentage();
 
@@ -306,6 +307,7 @@ class BarChart extends AbstractChart<BarChartProps, BarChartState> {
     const minY = height * 0.75 + paddingTop;
 
     return data.map((x, i) => {
+      if (x === null) return null;
       const barHeight = this.calcHeight(x, data, height);
       const barWidth = 32 * this.getBarPercentage();
       const yHeight = ((baseHeight - barHeight) / 4) * 3 + paddingTop;

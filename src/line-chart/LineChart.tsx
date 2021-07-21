@@ -831,14 +831,14 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
     const datas = this.getDatas(data);
     const baseHeight = this.calcBaseHeight(datas, height);
 
-    let lastPoint: string;
+    let lastPoint: string = "";
 
     data.forEach((dataset, index) => {
       const { hideLineAtIndex } = this.props;
-      const lineData = hideLineAtIndex
-        ? dataset.data.filter((_, i) => !hideLineAtIndex.includes(i))
-        : dataset.data;
+      const lineData = dataset.data;
+      const emptyKey = "empty";
       const points = lineData.map((d, i) => {
+        if (hideLineAtIndex.includes(i)) return emptyKey;
         if (d === null) return lastPoint;
         const x =
           (i * (width - paddingRight - 8)) / (dataset.data.length - 1) +
@@ -896,7 +896,6 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
 
     const y = (i: number) => {
       const yHeight = this.calcHeight(dataset.data[i], datas, height);
-
       return Math.floor(((baseHeight - yHeight) / 4) * 3 + paddingTop);
     };
 
@@ -904,6 +903,7 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
     const firstIndexWithData = dataset.data.findIndex(
       (item, index) => !hideLineAtIndex.includes(index) && item !== null
     );
+
     if (firstIndexWithData < 0) return "";
     const startX = x(firstIndexWithData);
     const startY = y(firstIndexWithData);
@@ -912,9 +912,10 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
 
     return [`M${startX},${startY}`]
       .concat(
-        dataset.data.slice(0, -1).map((_, i) => {
-          if (hideLineAtIndex && hideLineAtIndex.includes(i)) return "";
-
+        dataset.data.slice(0, -1).map((n, i) => {
+          if (i < firstIndexWithData) return "";
+          if (n === null) return "";
+          if (dataset.data[i + 1] === null) return "";
           const x_mid = (x(i) + x(i + 1)) / 2;
           const y_mid = (y(i) + y(i + 1)) / 2;
           const cp_x1 = (x_mid + x(i)) / 2;
@@ -939,25 +940,49 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
     "data" | "width" | "height" | "paddingRight" | "paddingTop"
   >) => {
     return data.map((dataset, index) => {
-      const result = this.getBezierLinePoints(dataset, {
-        width,
-        height,
-        paddingRight,
-        paddingTop,
-        data
-      });
+      let realDatasets: any[] = [[]];
 
-      return (
+      for (let i = 0; i < dataset.data.length; i++) {
+        let point = dataset.data[i];
+        if (point === null) realDatasets.push([]);
+        else realDatasets[realDatasets.length - 1].push({ point, index: i });
+      }
+
+      realDatasets = realDatasets
+        .filter(i => i.length > 0)
+        .map(i => {
+          const iLeftNullsLen = i[0].index;
+          const iRightNullsLen = i[i.length - 1].index;
+          for (let j = 0; j < iLeftNullsLen; j++) {
+            i.unshift(null);
+          }
+          for (let j = iRightNullsLen; i.length < dataset.data.length; j++) {
+            i.push(null);
+          }
+          return { data: i.map(j => (j === null ? j : j.point)) };
+        });
+
+      const result = realDatasets.map(r =>
+        this.getBezierLinePoints(r, {
+          width,
+          height,
+          paddingRight,
+          paddingTop,
+          data
+        })
+      );
+
+      return result.map(d => (
         <Path
           key={index}
-          d={result}
+          d={d}
           fill="none"
           stroke={this.getColor(dataset, 0.2)}
           strokeWidth={this.getStrokeWidth(dataset)}
           strokeDasharray={dataset.strokeDashArray}
           strokeDashoffset={dataset.strokeDashOffset}
         />
-      );
+      ));
     });
   };
 
