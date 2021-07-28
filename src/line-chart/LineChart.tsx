@@ -277,6 +277,7 @@ export interface LineChartProps extends AbstractChartProps {
   dotInfoModalProps?: any;
   labelInTooltipFormatter?: (label: string) => string;
   tooltipLabels?: string[];
+  toNumber?: number;
 }
 
 type LineChartState = {
@@ -1105,7 +1106,8 @@ class LineChart extends AbstractChart<LineChartProps, LineChartState> {
 
     const datas = this.getDatas(data.datasets);
 
-    let count = Math.min(...datas) === Math.max(...datas) ? 1 : 4;
+    let count =
+      this.props.count || (Math.min(...datas) === Math.max(...datas) ? 1 : 4);
     if (segments) {
       count = segments;
     }

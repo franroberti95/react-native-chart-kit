@@ -5,7 +5,6 @@ import { ChartConfig, Dataset, PartialBy } from "./HelperTypes";
 
 export interface AbstractChartProps {
   fromZero?: boolean;
-  fromNumber?: number;
   chartConfig?: AbstractChartConfig;
   yAxisLabel?: string;
   yAxisSuffix?: string;
@@ -15,12 +14,15 @@ export interface AbstractChartProps {
   xLabelsOffset?: number;
   hidePointsAtIndex?: number[];
   customYAxis?: boolean;
-  toNumber?: number;
   yAxisLineProps?: object;
   smallPaddingRight?: boolean;
   yAxisIntervals?: { color: string; to: number; from: number }[];
   noDecimalsOnTopAndBotValues?: boolean;
   yAxisUnitLabel?: string;
+  botAndTopValues?: { top: number; bottom: number } | null;
+  count?: number;
+  fromNumber?: number;
+  toNumber?: number;
 }
 
 export interface AbstractChartConfig extends ChartConfig {
@@ -39,6 +41,8 @@ export interface AbstractChartConfig extends ChartConfig {
   formatXLabel?: (xLabel: string) => string;
   verticalLabelsHeightPercentage?: number;
   noDecimalsOnTopAndBotValues?: boolean;
+  fromNumber?: number;
+  toNumber?: number;
 }
 
 export type AbstractChartState = {};
@@ -50,23 +54,21 @@ class AbstractChart<
   IState extends AbstractChartState
 > extends Component<AbstractChartProps & IProps, AbstractChartState & IState> {
   calcScaler = (data: number[]) => {
-    if (this.props.fromZero) {
-      const toNumber: number[] = [...data, this.props.toNumber || 0];
-      return Math.max(...toNumber, 0) - this.props.fromNumber || 1;
-    } else if (this.props.fromNumber) {
-      return Math.max(...data) - this.props.fromNumber || 1;
+    const { fromNumber, toNumber } = this.props.chartConfig;
+    if (this.props.fromZero && fromNumber === undefined) {
+      const minNumber: number[] = [...data, 0];
+      return Math.max(...minNumber, 0) - 1;
+    } else if (fromNumber !== undefined) {
+      return Math.max(...data, toNumber) - fromNumber;
     } else {
-      return Math.max(...data) - this.props.fromNumber || 1;
+      return Math.max(...data) - 1;
     }
   };
 
   calcBaseHeight = (data: number[], height: number) => {
-    const min = this.props.fromNumber
-      ? this.props.fromNumber
-      : Math.min(...data);
-    const max = this.props.toNumber
-      ? Math.max(...[...data, this.props.toNumber])
-      : Math.max(...data);
+    const { fromNumber, toNumber } = this.props.chartConfig;
+    const min = fromNumber !== undefined ? fromNumber : Math.min(...data);
+    const max = toNumber !== undefined ? toNumber : Math.max(...data);
     if (min >= 0 && max >= 0) {
       return height;
     } else if (min < 0 && max <= 0) {
@@ -77,13 +79,9 @@ class AbstractChart<
   };
 
   calcHeight = (val: number, data: number[], height: number) => {
-    const max = this.props.toNumber
-      ? Math.max(...[...data, this.props.toNumber])
-      : Math.max(...data);
-    const min = this.props.fromNumber
-      ? this.props.fromNumber
-      : Math.min(...data);
-
+    const { fromNumber, toNumber } = this.props.chartConfig;
+    const max = toNumber !== undefined ? toNumber : Math.max(...data);
+    const min = fromNumber !== undefined ? fromNumber : Math.min(...data);
     if (min < 0 && max > 0) {
       return height * (val / this.calcScaler(data));
     } else if (min >= 0 && max >= 0) {
@@ -165,7 +163,6 @@ class AbstractChart<
         ((baseHeight - this.calcHeight(interval.from, datas, height)) / 4) * 3 +
         paddingTop;
 
-      const isFistInterval = i === 0;
       const isLastInterval = i === yAxisIntervals.length - 1;
 
       const endValue = isLastInterval
@@ -174,10 +171,12 @@ class AbstractChart<
       const end =
         ((baseHeight - this.calcHeight(endValue, datas, height)) / 4) * 3 +
         paddingTop;
+      const { fromNumber } = this.props.chartConfig;
+
       const maxGraphHeight =
         ((baseHeight -
           this.calcHeight(
-            this.props.fromNumber || Math.min(...datas),
+            fromNumber !== undefined ? fromNumber : Math.min(...datas),
             datas,
             height
           )) /
@@ -208,10 +207,8 @@ class AbstractChart<
       verticalLabelsHeightPercentage = DEFAULT_X_LABELS_HEIGHT_PERCENTAGE
     } = config;
     const basePosition = height * verticalLabelsHeightPercentage;
-
-    return [...new Array(count + 1)].map((_, i) => {
-      const y = (basePosition / count) * i + paddingTop;
-
+    return [...new Array((this.props.count || count) + 1)].map((_, i) => {
+      const y = (basePosition / (this.props.count || count)) * i + paddingTop;
       return (
         <Line
           key={Math.random()}
@@ -266,57 +263,75 @@ class AbstractChart<
       yAxisSuffix = "",
       yLabelsOffset = 12
     } = this.props;
-    return new Array(count === 1 ? 1 : count + 1).fill(1).map((_, i) => {
-      let yLabel = String(i * count);
+    return new Array(
+      (this.props.count || count) === 1 ? 1 : (this.props.count || count) + 1
+    )
+      .fill(1)
+      .map((_, i) => {
+        let yLabel = String(i * count);
+        let newDecimalPlaces = decimalPlaces;
+        if (
+          this.props.noDecimalsOnTopAndBotValues &&
+          (i === 0 ||
+            i ===
+              new Array(
+                (this.props.count || count) === 1
+                  ? 1
+                  : (this.props.count || count) + 1
+              ).length -
+                1)
+        ) {
+          newDecimalPlaces = 0;
+        }
+        const { fromNumber, toNumber } = this.props.chartConfig;
 
-      let newDecimalPlaces = decimalPlaces;
-      if (
-        this.props.noDecimalsOnTopAndBotValues &&
-        (i === 0 || i === new Array(count === 1 ? 1 : count + 1).length - 1)
-      ) {
-        newDecimalPlaces = 0;
-      }
+        if ((this.props.count || count) === 1) {
+          yLabel = `${yAxisLabel}${formatYLabel(
+            //@ts-ignore
+            data[0]?.toFixed ? data[0].toFixed(newDecimalPlaces) : data[0]
+          )}${yAxisSuffix}`;
+        } else {
+          const label = this.props.fromZero
+            ? (this.calcScaler(data) / (this.props.count || count)) * i +
+              (fromNumber !== undefined ? fromNumber : Math.min(...data, 0))
+            : (this.calcScaler(data) / (this.props.count || count)) * i +
+              (fromNumber !== undefined ? fromNumber : Math.min(...data));
+          yLabel = `${yAxisLabel}${formatYLabel(
+            label.toFixed(newDecimalPlaces)
+          )}${yAxisSuffix}`;
+          console.log(
+            label,
+            this.calcScaler(data),
+            this.props.count,
+            fromNumber,
+            Math.min(...data)
+          );
+        }
 
-      if (count === 1) {
-        yLabel = `${yAxisLabel}${formatYLabel(
-          //@ts-ignore
-          data[0]?.toFixed ? data[0].toFixed(newDecimalPlaces) : data[0]
-        )}${yAxisSuffix}`;
-      } else {
-        const label = this.props.fromZero
-          ? (this.calcScaler(data) / count) * i +
-            (this.props.fromNumber || Math.min(...data, 0))
-          : (this.calcScaler(data) / count) * i +
-            (this.props.fromNumber || Math.min(...data));
-        yLabel = `${yAxisLabel}${formatYLabel(
-          label.toFixed(newDecimalPlaces)
-        )}${yAxisSuffix}`;
-      }
+        const basePosition = height * verticalLabelsHeightPercentage;
+        const x = paddingRight - yLabelsOffset + 3;
+        const y =
+          count === 1 && this.props.fromZero
+            ? paddingTop + 4
+            : height * verticalLabelsHeightPercentage -
+              (basePosition / (this.props.count || count)) * i +
+              paddingTop;
 
-      const basePosition = height * verticalLabelsHeightPercentage;
-      const x = paddingRight - yLabelsOffset + 3;
-      const y =
-        count === 1 && this.props.fromZero
-          ? paddingTop + 4
-          : height * verticalLabelsHeightPercentage -
-            (basePosition / count) * i +
-            paddingTop;
-
-      return (
-        <Text
-          rotation={horizontalLabelRotation}
-          origin={`${x}, ${y}`}
-          key={Math.random()}
-          x={x}
-          textAnchor="end"
-          y={y}
-          {...this.getPropsForLabels()}
-          {...this.getPropsForHorizontalLabels()}
-        >
-          {yLabel}
-        </Text>
-      );
-    });
+        return (
+          <Text
+            rotation={horizontalLabelRotation}
+            origin={`${x}, ${y}`}
+            key={Math.random()}
+            x={x}
+            textAnchor="end"
+            y={y}
+            {...this.getPropsForLabels()}
+            {...this.getPropsForHorizontalLabels()}
+          >
+            {yLabel}
+          </Text>
+        );
+      });
   };
 
   renderYUnitsLabel = config => {
