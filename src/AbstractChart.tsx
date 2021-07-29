@@ -299,13 +299,6 @@ class AbstractChart<
           yLabel = `${yAxisLabel}${formatYLabel(
             label.toFixed(newDecimalPlaces)
           )}${yAxisSuffix}`;
-          console.log(
-            label,
-            this.calcScaler(data),
-            this.props.count,
-            fromNumber,
-            Math.min(...data)
-          );
         }
 
         const basePosition = height * verticalLabelsHeightPercentage;
