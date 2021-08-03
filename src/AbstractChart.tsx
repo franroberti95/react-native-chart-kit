@@ -56,18 +56,21 @@ class AbstractChart<
   calcScaler = (data: number[]) => {
     const { fromNumber, toNumber } = this.props.chartConfig;
     if (this.props.fromZero && fromNumber === undefined) {
-      const minNumber: number[] = [...data, 0];
-      return Math.max(...minNumber, 0) - 1;
+      const minNumber: number[] = [...data];
+      return Math.max(...minNumber) - 1;
     } else if (fromNumber !== undefined) {
       return Math.max(...data, toNumber) - fromNumber;
     } else {
-      return Math.max(...data) - 1;
+      return Math.max(...data) - Math.min(...data.filter(d => d !== null));
     }
   };
 
   calcBaseHeight = (data: number[], height: number) => {
     const { fromNumber, toNumber } = this.props.chartConfig;
-    const min = fromNumber !== undefined ? fromNumber : Math.min(...data);
+    const min =
+      fromNumber !== undefined
+        ? fromNumber
+        : Math.min(...data.filter(d => d !== null));
     const max = toNumber !== undefined ? toNumber : Math.max(...data);
     if (min >= 0 && max >= 0) {
       return height;
@@ -81,7 +84,10 @@ class AbstractChart<
   calcHeight = (val: number, data: number[], height: number) => {
     const { fromNumber, toNumber } = this.props.chartConfig;
     const max = toNumber !== undefined ? toNumber : Math.max(...data);
-    const min = fromNumber !== undefined ? fromNumber : Math.min(...data);
+    const min =
+      fromNumber !== undefined
+        ? fromNumber
+        : Math.min(...data.filter(d => d !== null));
     if (min < 0 && max > 0) {
       return height * (val / this.calcScaler(data));
     } else if (min >= 0 && max >= 0) {
@@ -176,7 +182,9 @@ class AbstractChart<
       const maxGraphHeight =
         ((baseHeight -
           this.calcHeight(
-            fromNumber !== undefined ? fromNumber : Math.min(...datas),
+            fromNumber !== undefined
+              ? fromNumber
+              : Math.min(...datas.filter(d => d !== null)),
             datas,
             height
           )) /
@@ -295,7 +303,19 @@ class AbstractChart<
             ? (this.calcScaler(data) / (this.props.count || count)) * i +
               (fromNumber !== undefined ? fromNumber : Math.min(...data, 0))
             : (this.calcScaler(data) / (this.props.count || count)) * i +
-              (fromNumber !== undefined ? fromNumber : Math.min(...data));
+              (fromNumber !== undefined
+                ? fromNumber
+                : Math.min(...data.filter(d => d !== null)));
+          console.log("DAMN", data);
+          console.log(
+            "asd",
+            this.calcScaler(data),
+            this.props.count,
+            count,
+            fromNumber,
+            Math.min(...data)
+          );
+          console.log(this.calcScaler(data) / (this.props.count || count));
           yLabel = `${yAxisLabel}${formatYLabel(
             label.toFixed(newDecimalPlaces)
           )}${yAxisSuffix}`;
@@ -391,21 +411,19 @@ class AbstractChart<
     const fontSize = 12;
 
     let fac = 1;
-    if (stackedBar) {
-      fac = 0.71;
-    }
-
+    //if (stackedBar) {
+    //  fac = 0.71;
+    //}
     return labels.map((label, i) => {
       //if (hidePointsAtIndex.includes(i)) {
       //  return null;
       //}
 
       const x =
-        (((width - paddingRight - 8) / (labels.length - (isBarChart ? 0 : 1))) *
-          i *
-          (isBarChart ? 1.013 : 1) +
-          paddingRight +
-          horizontalOffset) *
+        (((width - paddingRight - (isBarChart ? 16 : 8)) /
+          (labels.length - (isBarChart ? 0 : 1))) *
+          i +
+          (isBarChart ? 50 : paddingRight + horizontalOffset)) *
         fac;
 
       const y =
