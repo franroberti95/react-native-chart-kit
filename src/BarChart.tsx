@@ -9,7 +9,8 @@ import {
   Rect,
   Stop,
   Svg,
-  Text
+  Text,
+  TSpan
 } from "react-native-svg";
 
 import AbstractChart, {
@@ -43,6 +44,16 @@ export interface BarChartProps extends AbstractChartProps {
   /**
    * The number of horizontal lines
    */
+  /**
+   * This function change the format of the display value of the Y label.
+   * Takes the y value as argument and should return the desirable string.
+   */
+  formatYLabel?: (yValue: string) => string;
+  /**
+   * This function change the format of the display value of the X label.
+   * Takes the X value as argument and should return the desirable string.
+   */
+  formatXLabel?: (xValue: string) => string;
   segments?: number;
   showBarTops?: boolean;
   showValuesOnTopOfBars?: boolean;
@@ -155,6 +166,8 @@ class DotInfoGroup extends React.Component<any, any> {
         data?.labels[index];
 
     const halfOfBarWidth = barWidth / 2;
+    const largeTooltipContent =
+      tooltipLabel && Array.isArray(tooltipLabel) && tooltipLabel.length > 1;
 
     return (
       <G>
@@ -199,7 +212,16 @@ class DotInfoGroup extends React.Component<any, any> {
           ry={12}
         />
         <Text
-          y={dotY + (infoTextGoesOnTop ? -28 : 26)}
+          y={
+            dotY +
+            (largeTooltipContent
+              ? infoTextGoesOnTop
+                ? -34
+                : 20
+              : infoTextGoesOnTop
+              ? -28
+              : 26)
+          }
           x={Math.min(
             Math.max(dotX + halfOfBarWidth, paddingRight + 40),
             width - 45
@@ -214,7 +236,16 @@ class DotInfoGroup extends React.Component<any, any> {
             : ""}
         </Text>
         <Text
-          y={dotY + (infoTextGoesOnTop ? -15 : 39)}
+          y={
+            dotY +
+            (largeTooltipContent
+              ? infoTextGoesOnTop
+                ? -21
+                : 33
+              : infoTextGoesOnTop
+              ? -15
+              : 39)
+          }
           x={Math.min(
             Math.max(dotX + halfOfBarWidth, paddingRight + 40),
             width - 45
@@ -223,7 +254,17 @@ class DotInfoGroup extends React.Component<any, any> {
           fontSize="8"
           textAnchor="middle"
         >
-          {tooltipLabel}
+          {largeTooltipContent
+            ? tooltipLabel.map((i, index) => (
+                <TSpan
+                  key={i}
+                  dy={index * 1.2 + "em"}
+                  x={Math.min(Math.max(dotX, paddingRight + 40), width - 35)}
+                >
+                  {i}
+                </TSpan>
+              ))
+            : tooltipLabel}
         </Text>
       </G>
     );
@@ -311,7 +352,7 @@ class Bars extends React.Component<any, any> {
 
       const halfOfBarWidth = barWidth / 2;
       tooltipComponent = (
-        <G>
+        <G key={Math.random()}>
           <Circle
             key={Math.random()}
             cx={dotX + barWidth / 2}
@@ -399,7 +440,7 @@ class Bars extends React.Component<any, any> {
           paddingTop -
           (Math.max(rectHeight, 1) === 1 ? 1 : 0);
         return (
-          <G>
+          <G key={Math.random()}>
             <AnimatedRect
               key={Math.random()}
               x={rectX}
@@ -732,7 +773,8 @@ class BarChart extends AbstractChart<BarChartProps, BarChartState> {
                   isBarChart: true,
                   paddingRight: paddingRight as number,
                   paddingTop: paddingTop as number,
-                  horizontalOffset: barWidth * this.getBarPercentage()
+                  horizontalOffset: barWidth * this.getBarPercentage(),
+                  formatXLabel: this.props.formatXLabel
                 })
               : null}
           </G>

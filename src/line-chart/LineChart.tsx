@@ -343,6 +343,11 @@ class DotInfoGroup extends React.Component<any, any> {
           labelInTooltipFormatter(xValue)) ||
         xValue;
 
+    const largeTooltipContent =
+      tooltipLabel && Array.isArray(tooltipLabel) && tooltipLabel.length > 1;
+    const valueInTooltip =
+      mergedDots[index].value &&
+      mergedDots[index].value.toFixed(2) + " " + (units || "");
     return (
       <G>
         <Line
@@ -390,25 +395,87 @@ class DotInfoGroup extends React.Component<any, any> {
           ry={12}
         />
         <Text
-          y={dotY + (infoTextGoesOnTop ? -28 : 26)}
-          x={Math.min(Math.max(dotX, paddingRight + 40), width - 35)}
+          y={
+            dotY +
+            (largeTooltipContent
+              ? infoTextGoesOnTop
+                ? -34
+                : 20
+              : infoTextGoesOnTop
+              ? -28
+              : 26)
+          }
+          x={
+            Math.min(Math.max(dotX, paddingRight + 40), width - 35) -
+            (valueInTooltip
+              ? (valueInTooltip.length -
+                  mergedDots[index].value.toFixed(2).length) /
+                2
+              : 0) *
+              4
+          }
           fill="black"
           fontSize="10"
           fontWeight="bold"
           textAnchor="middle"
         >
-          {mergedDots[index].value
-            ? mergedDots[index].value.toFixed(2) + " " + units
-            : ""}
+          {mergedDots[index].value ? mergedDots[index].value.toFixed(2) : ""}
         </Text>
+        {mergedDots[index].value && (
+          <Text
+            y={
+              dotY +
+              (largeTooltipContent
+                ? infoTextGoesOnTop
+                  ? -34
+                  : 20
+                : infoTextGoesOnTop
+                ? -28
+                : 26)
+            }
+            x={
+              Math.min(Math.max(dotX, paddingRight + 40), width - 35) +
+              (valueInTooltip
+                ? (valueInTooltip.length - units.length) / 2
+                : 0) *
+                6.8
+            }
+            fill="black"
+            fontSize="10"
+            fontWeight={250}
+            textAnchor="middle"
+          >
+            {units}
+          </Text>
+        )}
         <Text
-          y={dotY + (infoTextGoesOnTop ? -15 : 39)}
+          y={
+            dotY +
+            (largeTooltipContent
+              ? infoTextGoesOnTop
+                ? -22
+                : 32
+              : infoTextGoesOnTop
+              ? -15
+              : 39)
+          }
           x={Math.min(Math.max(dotX, paddingRight + 40), width - 35)}
           fill="black"
-          fontSize="8"
+          fontSize="10"
+          fontWeight={250}
           textAnchor="middle"
         >
-          {tooltipLabel}
+          {largeTooltipContent
+            ? tooltipLabel.map((i, index) => (
+                <TSpan
+                  key={i}
+                  dy={index * 12 + "px"}
+                  x={Math.min(Math.max(dotX, paddingRight + 40), width - 35)}
+                >
+                  {i}
+                </TSpan>
+              ))
+            : tooltipLabel}
         </Text>
       </G>
     );

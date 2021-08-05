@@ -306,16 +306,6 @@ class AbstractChart<
               (fromNumber !== undefined
                 ? fromNumber
                 : Math.min(...data.filter(d => d !== null)));
-          console.log("DAMN", data);
-          console.log(
-            "asd",
-            this.calcScaler(data),
-            this.props.count,
-            count,
-            fromNumber,
-            Math.min(...data)
-          );
-          console.log(this.calcScaler(data) / (this.props.count || count));
           yLabel = `${yAxisLabel}${formatYLabel(
             label.toFixed(newDecimalPlaces)
           )}${yAxisSuffix}`;
