@@ -447,7 +447,7 @@ class Bars extends React.Component<any, any> {
               y={y}
               rx={barRadius}
               width={barWidth}
-              height={Math.max(rectHeight, 1)}
+              height={Math.max(rectHeight || 0, 1)}
               fill={
                 withCustomBarColorFromData
                   ? `url(#customColor_0_${i})`
@@ -721,10 +721,12 @@ class BarChart extends AbstractChart<BarChartProps, BarChartState> {
       <View style={style}>
         <Svg
           height={height}
-          width={width}
+          width={width + 15}
           onTouchMove={this.onTouchMove}
           onTouchEnd={this.onTouchEnd}
           onTouchStart={this.onTouchMove}
+          onResponderEnd={this.onTouchEnd}
+          onPressOut={this.onTouchEnd}
         >
           {this.renderDefs({
             ...config,
@@ -764,23 +766,9 @@ class BarChart extends AbstractChart<BarChartProps, BarChartState> {
               : null}
           </G>
           <G>
-            {withVerticalLabels
-              ? this.renderVerticalLabels({
-                  ...config,
-                  labels: data.labels,
-                  width,
-                  // @ts-ignore
-                  isBarChart: true,
-                  paddingRight: paddingRight as number,
-                  paddingTop: paddingTop as number,
-                  horizontalOffset: barWidth * this.getBarPercentage(),
-                  formatXLabel: this.props.formatXLabel
-                })
-              : null}
-          </G>
-          <G>
             <AnimatedRects
               {...config}
+              width={config.width + 15}
               fromNumber={this.props.fromNumber}
               dotInfoModalProps={this.props.dotInfoModalProps}
               calcHeight={this.calcHeight}
@@ -818,27 +806,19 @@ class BarChart extends AbstractChart<BarChartProps, BarChartState> {
               })}
           </G>
           <G>
-            {showBarInfoOnTouch && (
-              <AnimatedDotInfoGroup
-                touchMoveXCoords={this.state.touchMoveXCoords}
-                touchMoveYCoords={this.state.touchMoveYCoords}
-                calcBaseHeight={this.calcBaseHeight}
-                fromNumber={this.props.fromNumber}
-                calcHeight={this.calcHeight}
-                getBarPercentage={this.getBarPercentage}
-                paddingTop={paddingTop}
-                paddingRight={paddingRight}
-                dotInfoModalProps={this.props.dotInfoModalProps}
-                labelInTooltipFormatter={this.props.labelInTooltipFormatter}
-                tooltipLabels={this.props.tooltipLabels}
-                height={height}
-                width={width}
-                barRadius={config.barRadius}
-                data={data}
-                labels={labels}
-                barsRendered={this.barsRendered}
-              />
-            )}
+            {withVerticalLabels
+              ? this.renderVerticalLabels({
+                  ...config,
+                  labels: data.labels,
+                  width,
+                  // @ts-ignore
+                  isBarChart: true,
+                  paddingRight: paddingRight as number,
+                  paddingTop: paddingTop as number,
+                  horizontalOffset: barWidth * this.getBarPercentage(),
+                  formatXLabel: this.props.formatXLabel
+                })
+              : null}
           </G>
         </Svg>
       </View>

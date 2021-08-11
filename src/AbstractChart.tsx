@@ -410,10 +410,10 @@ class AbstractChart<
       //}
 
       const x =
-        (((width - paddingRight - (isBarChart ? 16 : 8)) /
-          (labels.length - (isBarChart ? 0 : 1))) *
+        (((width - paddingRight - 8) / (labels.length - 1)) *
+          (isBarChart ? 0.986 : 1) *
           i +
-          (isBarChart ? 50 : paddingRight + horizontalOffset)) *
+          50) *
         fac;
 
       const y =
