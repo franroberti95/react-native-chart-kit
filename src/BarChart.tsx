@@ -322,7 +322,11 @@ class Bars extends React.Component<any, any> {
       recursiveFindBar(touchMoveXCoords, filteredNullsBars);
     const maxGraphHeight =
       ((baseHeight -
-        calcHeight(fromNumber || Math.min(...data), data, height)) /
+        calcHeight(
+          fromNumber !== undefined ? fromNumber : Math.min(...data),
+          data,
+          height
+        )) /
         4) *
         3 +
       paddingTop;
@@ -363,7 +367,7 @@ class Bars extends React.Component<any, any> {
           <Line
             key={Math.random()}
             x1={dotX + barWidth / 2}
-            y1={maxGraphHeight || 160}
+            y1={dotY}
             x2={dotX + barWidth / 2}
             y2={3}
             strokeDasharray={"2 6"}

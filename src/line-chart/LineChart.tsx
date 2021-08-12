@@ -317,27 +317,35 @@ class DotInfoGroup extends React.Component<any, any> {
 
     const maxGraphHeight =
       ((baseHeight -
-        calcHeight(fromNumber || Math.min(...datas), datas, height)) /
+        calcHeight(
+          fromNumber !== undefined
+            ? fromNumber
+            : Math.min(...datas.filter(i => i !== null)),
+          datas,
+          height
+        )) /
         4) *
         3 +
       paddingTop;
+
     const x = touchMoveXCoords;
     /** Merge Datasets **/
     const mergedDots = [].concat.apply([], dotsRendered);
     /** Get index of the closest x element **/
-
     const index = recursiveFindDot(x, mergedDots);
+
     if (!mergedDots[index]) return null;
     const dotX = mergedDots[index].x;
     const dotY = mergedDots[index].y;
     const xValue = labels[mergedDots[index].index];
     let infoTextGoesOnTop = true;
-    if ((touchMoveYCoords < dotY && dotY < maxGraphHeight - 25) || dotY < 50) {
+
+    if ((touchMoveYCoords < dotY && dotY < maxGraphHeight - 50) || dotY < 50) {
       infoTextGoesOnTop = false;
     }
 
     const tooltipLabel = tooltipLabels
-      ? tooltipLabels[index]
+      ? tooltipLabels[mergedDots[index].index]
       : (xValue &&
           labelInTooltipFormatter &&
           labelInTooltipFormatter(xValue)) ||
