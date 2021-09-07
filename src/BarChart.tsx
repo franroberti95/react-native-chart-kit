@@ -336,6 +336,7 @@ class Bars extends React.Component<any, any> {
       filteredNullsBars[indexFound] &&
       filteredNullsBars[indexFound].index;
     let tooltipComponent = null;
+
     if (barSelectedIndex >= 0) {
       const dotX = renderedBars[barSelectedIndex].x;
       const dotY = renderedBars[barSelectedIndex].y;
@@ -353,6 +354,8 @@ class Bars extends React.Component<any, any> {
             labelInTooltipFormatter &&
             labelInTooltipFormatter(dataLabels[barSelectedIndex])) ||
           dataLabels[barSelectedIndex];
+      const largeTooltipContent =
+        tooltipLabel && Array.isArray(tooltipLabel) && tooltipLabel.length > 1;
 
       const halfOfBarWidth = barWidth / 2;
       tooltipComponent = (
@@ -390,7 +393,7 @@ class Bars extends React.Component<any, any> {
             y={dotY + (infoTextGoesOnTop ? -28 : 26)}
             x={Math.min(
               Math.max(dotX + halfOfBarWidth, paddingRight + 40),
-              width - 45
+              width - 42
             )}
             fill="black"
             fontSize="10"
@@ -407,13 +410,24 @@ class Bars extends React.Component<any, any> {
             y={dotY + (infoTextGoesOnTop ? -15 : 39)}
             x={Math.min(
               Math.max(dotX + halfOfBarWidth, paddingRight + 40),
-              width - 45
+              width - 42
             )}
             fill="black"
-            fontSize="8"
+            fontSize="10"
+            fontWeight={250}
             textAnchor="middle"
           >
-            {tooltipLabel}
+            {largeTooltipContent
+              ? tooltipLabel.map((i, index) => (
+                  <TSpan
+                    key={i}
+                    dy={index * 12 + "px"}
+                    x={Math.min(Math.max(dotX, paddingRight + 40), width - 35)}
+                  >
+                    {i}
+                  </TSpan>
+                ))
+              : tooltipLabel}
           </Text>
         </G>
       );

@@ -420,7 +420,7 @@ class DotInfoGroup extends React.Component<any, any> {
           textAnchor="middle"
         >
           {mergedDots[index].value
-            ? mergedDots[index].value.toFixed(2) + " " + units
+            ? mergedDots[index].value.toFixed(2) + " " + (units || "")
             : ""}
         </Text>
         <Text
