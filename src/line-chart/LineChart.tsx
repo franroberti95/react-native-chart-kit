@@ -355,7 +355,9 @@ class DotInfoGroup extends React.Component<any, any> {
       tooltipLabel && Array.isArray(tooltipLabel) && tooltipLabel.length > 1;
     const valueInTooltip =
       mergedDots[index].value &&
-      mergedDots[index].value.toFixed(2) + " " + (units || "");
+      Number(mergedDots[index].value) &&
+      Number(mergedDots[index].value).toFixed &&
+      Number(mergedDots[index].value).toFixed(2) + " " + (units || "");
     return (
       <G>
         <Line
@@ -363,7 +365,7 @@ class DotInfoGroup extends React.Component<any, any> {
           x1={dotX}
           y1={maxGraphHeight}
           x2={dotX}
-          y2={3}
+          y2={paddingTop}
           strokeDasharray={"4 2"}
           stroke={"#F6F6F5"}
           strokeWidth={1}
@@ -419,9 +421,7 @@ class DotInfoGroup extends React.Component<any, any> {
           fontWeight="bold"
           textAnchor="middle"
         >
-          {mergedDots[index].value
-            ? mergedDots[index].value.toFixed(2) + " " + (units || "")
-            : ""}
+          {valueInTooltip || ""}
         </Text>
         <Text
           y={

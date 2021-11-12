@@ -357,6 +357,14 @@ class Bars extends React.Component<any, any> {
       const largeTooltipContent =
         tooltipLabel && Array.isArray(tooltipLabel) && tooltipLabel.length > 1;
 
+      const valueInTooltip =
+        renderedBars[barSelectedIndex].value &&
+        Number(renderedBars[barSelectedIndex].value) &&
+        Number(renderedBars[barSelectedIndex].value).toFixed &&
+        Number(renderedBars[barSelectedIndex].value).toFixed(2) +
+          " " +
+          (units || "");
+
       const halfOfBarWidth = barWidth / 2;
       tooltipComponent = (
         <G key={Math.random()}>
@@ -372,7 +380,7 @@ class Bars extends React.Component<any, any> {
             x1={dotX + barWidth / 2}
             y1={dotY}
             x2={dotX + barWidth / 2}
-            y2={3}
+            y2={paddingTop}
             strokeDasharray={"2 6"}
             stroke={"#F6F6F5"}
             strokeWidth={1}
@@ -400,11 +408,7 @@ class Bars extends React.Component<any, any> {
             fontWeight="bold"
             textAnchor="middle"
           >
-            {renderedBars[barSelectedIndex].value
-              ? renderedBars[barSelectedIndex].value.toFixed(2) +
-                " " +
-                (units || "")
-              : ""}
+            {valueInTooltip || ""}
           </Text>
           <Text
             y={dotY + (infoTextGoesOnTop ? -15 : 39)}
