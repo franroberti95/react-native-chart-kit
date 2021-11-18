@@ -354,10 +354,11 @@ class DotInfoGroup extends React.Component<any, any> {
     const largeTooltipContent =
       tooltipLabel && Array.isArray(tooltipLabel) && tooltipLabel.length > 1;
     const valueInTooltip =
-      mergedDots[index].value &&
-      Number(mergedDots[index].value) &&
+      mergedDots[index].value !== undefined &&
+      mergedDots[index].value !== null &&
       Number(mergedDots[index].value).toFixed &&
       Number(mergedDots[index].value).toFixed(2) + " " + (units || "");
+
     return (
       <G>
         <Line

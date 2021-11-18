@@ -164,6 +164,13 @@ class DotInfoGroup extends React.Component<any, any> {
           labelInTooltipFormatter &&
           labelInTooltipFormatter(data?.labels[index])) ||
         data?.labels[index];
+    const valueInTooltip =
+      barsRendered[index].value !== undefined &&
+      barsRendered[index].value !== null &&
+      Number(barsRendered[index].value).toFixed &&
+      Number(barsRendered[index].value).toFixed(2) + " " + (units || "");
+
+    console.log(valueInTooltip, barsRendered[index].value);
 
     const halfOfBarWidth = barWidth / 2;
     const largeTooltipContent =
@@ -231,9 +238,7 @@ class DotInfoGroup extends React.Component<any, any> {
           fontWeight="bold"
           textAnchor="middle"
         >
-          {barsRendered[index].value
-            ? barsRendered[index].value.toFixed(2) + " " + (units || "")
-            : ""}
+          {valueInTooltip || ""}
         </Text>
         <Text
           y={
@@ -358,8 +363,8 @@ class Bars extends React.Component<any, any> {
         tooltipLabel && Array.isArray(tooltipLabel) && tooltipLabel.length > 1;
 
       const valueInTooltip =
-        renderedBars[barSelectedIndex].value &&
-        Number(renderedBars[barSelectedIndex].value) &&
+        renderedBars[barSelectedIndex].value !== null &&
+        renderedBars[barSelectedIndex].value !== undefined &&
         Number(renderedBars[barSelectedIndex].value).toFixed &&
         Number(renderedBars[barSelectedIndex].value).toFixed(2) +
           " " +
