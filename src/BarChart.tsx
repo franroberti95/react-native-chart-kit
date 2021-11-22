@@ -170,8 +170,6 @@ class DotInfoGroup extends React.Component<any, any> {
       Number(barsRendered[index].value).toFixed &&
       Number(barsRendered[index].value).toFixed(2) + " " + (units || "");
 
-    console.log(valueInTooltip, barsRendered[index].value);
-
     const halfOfBarWidth = barWidth / 2;
     const largeTooltipContent =
       tooltipLabel && Array.isArray(tooltipLabel) && tooltipLabel.length > 1;
